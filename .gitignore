@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+**/.DS_Store
+._*
+
+# Archived and temporary artifacts
+archive/
+*.zip
+*.tar.gz
+tmp/
+
+# Runtime: state files belong to each project, not to version control
+.hello-dev/
+
+# Development journal: this repo's change log is not portable config and must not be committed by adopting projects
+docs/progress_coding/
+
+# Host project-level workspace data (session state, daily logs, local scratch).
+# This directory also holds throwaway baselines that duplicate SKILL.md under the same
+# `name: hello-dev`; tracking them creates false skill-detection candidates. Pack output
+# already excludes this path in scripts/portable.js -- this keeps it out of the repository too.
+.workbuddy/
