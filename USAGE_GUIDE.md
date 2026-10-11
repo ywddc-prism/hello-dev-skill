@@ -266,7 +266,7 @@ The AI assistant will auto-complete installation and configuration.
 | State machine | Full support | Sync stage status via `TaskCreate/Update` |
 | Dual gates | Full support | PreToolUse hooks auto-registered |
 | Wave scheduling | Full support | Dispatch sub-agents via `Agent` tool |
-| Five-layer memory | Full support | `.devloop/memory.json` persistence |
+| Five-layer memory | Full support | `.hello-dev/memory.json` persistence |
 | Four-layer verification | Full support | Verification stage auto-executed |
 | grill-me | Full support | Requirement interrogation skill bundled |
 | ui-ux-pro-max | Full support | UI/UX design spec skill bundled |
@@ -310,7 +310,7 @@ WorkBuddy's expert center provides pre-configured expert teams:
 | State machine | Full support | Manage stages via `Task` tool |
 | Dual gates | Needs manual config | Need to manually register PreToolUse hooks |
 | Wave scheduling | Full support | Dispatch sub-agents via `Task` tool |
-| Five-layer memory | Full support | `.devloop/memory.json` persistence |
+| Five-layer memory | Full support | `.hello-dev/memory.json` persistence |
 | Four-layer verification | Full support | Verification stage auto-executed |
 | grill-me | Full support | Requirement interrogation skill bundled |
 | ui-ux-pro-max | Full support | UI/UX design spec skill bundled |
@@ -334,7 +334,7 @@ Reference skills via `CLAUDE.md`, auto-load execution contract.
 | State machine | Full support | Manage via state files |
 | Dual gates | Needs manual config | Need to manually register hooks |
 | Wave scheduling | Limited support | Dispatch via `create_thread` |
-| Five-layer memory | Full support | `.devloop/memory.json` persistence |
+| Five-layer memory | Full support | `.hello-dev/memory.json` persistence |
 | Four-layer verification | Full support | Verification stage auto-executed |
 | grill-me | Full support | Requirement interrogation skill bundled |
 | ui-ux-pro-max | Full support | UI/UX design spec skill bundled |
@@ -603,7 +603,7 @@ HELLODEV_OPSGATE_TRACE=1             # Enable gate tracing
 
 ### State Files
 
-Hello Dev state is stored in `.devloop/state.json`:
+Hello Dev state is stored in `.hello-dev/state.json`:
 
 ```json
 {
@@ -630,7 +630,7 @@ Hello Dev state is stored in `.devloop/state.json`:
 
 ### Memory Files
 
-Memory is stored in `.devloop/memory.json`:
+Memory is stored in `.hello-dev/memory.json`:
 
 ```json
 [
@@ -665,7 +665,7 @@ Memory is stored in `.devloop/memory.json`:
 
 ### Q5: Where is Hello Dev's data stored?
 
-**A**: All data is stored in the project-local `.devloop/` directory. Nothing is uploaded to the cloud, completely under your control.
+**A**: All data is stored in the project-local `.hello-dev/` directory. Nothing is uploaded to the cloud, completely under your control.
 
 ### Q6: Which is more suitable for Hello Dev, WorkBuddy or Claude Code?
 

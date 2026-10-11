@@ -1,16 +1,16 @@
-# DevLoop Pro
+# Hello Dev
 
 **English** | [Chinese](README.zh-CN.md)
 
 **Ensure AI builds what you actually want.**
 
-DevLoop Pro is a development enhancement system that solves seven problems AI-assisted development repeatedly hits: building the wrong thing, parallel execution collisions, experience loss across sessions, fuzzy approval boundaries, tests that pass without real verification, state loss on restart, and platform lock-in.
+Hello Dev is a development enhancement system that solves seven problems AI-assisted development repeatedly hits: building the wrong thing, parallel execution collisions, experience loss across sessions, fuzzy approval boundaries, tests that pass without real verification, state loss on restart, and platform lock-in.
 
 ## Core Value: Deliver What Users Actually Want
 
-Unlike other AI dev tools that focus on "writing code faster", DevLoop Pro focuses on **building the right thing**. Through structured requirement interrogation, prototype-first validation, and mandatory user checkpoints at every critical stage, it ensures the final deliverable matches the user's real needs -- not what the AI guessed.
+Unlike other AI dev tools that focus on "writing code faster", Hello Dev focuses on **building the right thing**. Through structured requirement interrogation, prototype-first validation, and mandatory user checkpoints at every critical stage, it ensures the final deliverable matches the user's real needs -- not what the AI guessed.
 
-| Traditional AI Dev Tools | DevLoop Pro |
+| Traditional AI Dev Tools | Hello Dev |
 |-------------------------|-------------|
 | Focus on coding speed | Focus on delivery correctness |
 | Assume requirements are clear | Assume requirements need validation |
@@ -19,14 +19,14 @@ Unlike other AI dev tools that focus on "writing code faster", DevLoop Pro focus
 
 ## What It Solves
 
-| Problem | How DevLoop Addresses It |
+| Problem | How Hello Dev Addresses It |
 |---------|------------------------|
 | AI builds the wrong thing because requirements were misunderstood | Structured requirement interrogation (grill-me) with decision tree traversal + prototype validation before implementation + mandatory user checkpoints at every critical stage |
 | Multiple sub-agents silently overwrite each other's file changes | Dependency-graph-driven wave scheduling + automatic file conflict detection (overlapping `affectedFiles` forces sequential execution) |
 | Lessons from past tasks disappear when the conversation ends | Five-layer memory (L0-L4) with write gate rejecting speculation + evidence pipeline tracking whether each experience actually helped (`improved`/`regressed`/`no_effect`/`unknown`) |
 | Task confirmation treated as blanket authorization for commits and deployments | Separate confirmation for Git writes, ops commands, and deployment; dual PreToolUse hooks classify risk before execution |
 | Running tests is not the same as proving correctness | Risk-first four-layer verification: identify risks -> prove with build/regression/behavior/boundary evidence |
-| Session restart loses all approvals and progress | Full state persistence in `.devloop/state.json`; recover via `resume` |
+| Session restart loses all approvals and progress | Full state persistence in `.hello-dev/state.json`; recover via `resume` |
 | Workflow tied to a single AI platform | Host Adapter layer decouples scheduling core from platform-specific sub-agent dispatch (WorkBuddy, Claude Code, Codex) |
 
 ## Quick Start
@@ -50,12 +50,12 @@ For detailed usage, see [_quick-start.md](_quick-start.md).
 - **Execution Contract**: 7 principles governing scope confirmation, causality understanding, exception handling, accurate accounting, minimal authorization, minimal change, and stoppability.
 - **Execution Paths**: Choose `fast` when the scope survey reports a single logical change unit (de-duplicated <50 lines, no new dependencies); otherwise `implementation` for standard tasks, or `full` for new design work. The escalation criterion and the module-root definition of "spans business modules" are defined once in [escalation.md](modules/core/task/escalation.md); this list cites them and does not restate their thresholds.
 - **Dual-Gate Strategy**: Git operations and ops commands (kubectl, systemctl, terraform) are classified by risk level before execution.
-- **State Persistence**: All approvals, retries, and checkpoints are recorded in `.devloop/state.json` for recovery and audit.
+- **State Persistence**: All approvals, retries, and checkpoints are recorded in `.hello-dev/state.json` for recovery and audit.
 
 ## Project Structure
 
 ```
-devloop-pro/
+hello-dev/
  SKILL.md                    # Execution contract and routing
  AGENTS.md                   # Agent entry point
  _quick-start.md             # Quick start guide
@@ -111,8 +111,8 @@ node scripts/check-links.js
 
 Current: v15.11 (2026-10-07)
 
-See [OPTIMIZATION-REPORT.md](archive/OPTIMIZATION-REPORT.md) for version history.
-
 ## License
 
-This project is for internal use. Contact the maintainer for licensing questions.
+[MIT](LICENSE) - Copyright (c) 2026 Hello Dev Contributors
+
+This project is open source under the MIT License. You are free to use, modify, and distribute it, including for commercial purposes, as long as the copyright notice is preserved.

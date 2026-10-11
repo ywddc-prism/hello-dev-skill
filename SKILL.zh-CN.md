@@ -1,5 +1,5 @@
 ---
-name: devloop-pro
+name: hello-dev
 description: >
   开发增强框架,提供阶段执行、任务分解、并行多Agent调度(含文件冲突检测)、
   五层记忆与证据链闭环、双门禁审批(Git + 运维命令)和漂移检测。
@@ -13,14 +13,14 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the devloop-pro skill directory}/scripts/hook-resolver.js" git-gate'
+          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
           timeout: 10
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the devloop-pro skill directory}/scripts/hook-resolver.js" opsgate'
+          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
           timeout: 10
 ---
 
-# DevLoop Pro
+# Hello Dev
 
 [English](SKILL.md) | **中文**
 
@@ -28,14 +28,14 @@ hooks:
 
 ## 概述
 
-DevLoop Pro 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六个问题构建:
+Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六个问题构建:
 
-1. **并行执行互相冲突**:多个子 Agent 修改同一文件时静默覆盖彼此。DevLoop 通过依赖图驱动的波次调度和自动文件冲突检测解决——同一波次内 affectedFiles 重叠时强制串行执行。
-2. **经验随会话消失**:过去任务的教训只存在于会被丢弃的对话上下文中。DevLoop 提供五层记忆系统(L0-L4),写入门禁拒绝推测语气,加上证据链跟踪每条记录的经验是否真正有效(improved/regressed/no_effect/unknown)。
-3. **审批边界模糊**:任务确认被当作全面授权,导致意外的提交或部署。DevLoop 对 Git 写操作、运维命令(kubectl、systemctl、terraform)和部署强制单独确认——双 PreToolUse hook 在执行前分类风险。
-4. **测试通过但没有真正验证**:跑测试套件不等于证明变更正确。DevLoop 使用风险优先的四层验证:先识别本次变更可能破坏什么,再用构建/回归/行为/边界证据逐项证明。
-5. **会话重启丢失状态**:对话历史是唯一记录,不可靠。DevLoop 将所有审批、重试、检查点和分解状态持久化到 `.devloop/state.json`,通过 `resume` 恢复。
-6. **平台绑定**:同一工作流必须能在不同 AI 宿主上运行。DevLoop 通过 Host Adapter 层将调度与派发解耦,核心状态机与宿主无关,各平台提供自己的子 Agent 调用机制。
+1. **并行执行互相冲突**:多个子 Agent 修改同一文件时静默覆盖彼此。Hello Dev 通过依赖图驱动的波次调度和自动文件冲突检测解决——同一波次内 affectedFiles 重叠时强制串行执行。
+2. **经验随会话消失**:过去任务的教训只存在于会被丢弃的对话上下文中。Hello Dev 提供五层记忆系统(L0-L4),写入门禁拒绝推测语气,加上证据链跟踪每条记录的经验是否真正有效(improved/regressed/no_effect/unknown)。
+3. **审批边界模糊**:任务确认被当作全面授权,导致意外的提交或部署。Hello Dev 对 Git 写操作、运维命令(kubectl、systemctl、terraform)和部署强制单独确认——双 PreToolUse hook 在执行前分类风险。
+4. **测试通过但没有真正验证**:跑测试套件不等于证明变更正确。Hello Dev 使用风险优先的四层验证:先识别本次变更可能破坏什么,再用构建/回归/行为/边界证据逐项证明。
+5. **会话重启丢失状态**:对话历史是唯一记录,不可靠。Hello Dev 将所有审批、重试、检查点和分解状态持久化到 `.hello-dev/state.json`,通过 `resume` 恢复。
+6. **平台绑定**:同一工作流必须能在不同 AI 宿主上运行。Hello Dev 通过 Host Adapter 层将调度与派发解耦,核心状态机与宿主无关,各平台提供自己的子 Agent 调用机制。
 
 它提供结构化执行路径(design/full、implementation、fast),包含强制的测试(Testing)和评审(Review)阶段,交互式架构决策引导,以及评估经验候选项但不自动激活的进化系统。
 
@@ -153,7 +153,7 @@ node scripts/codex-prompt.js wave --wave 1 --project "my-app" --project-path /ab
 # 生成单个子任务的 prompt
 node scripts/codex-prompt.js generate --subtask t1
 
-# 并行任务:用 --task <id> 读取 .devloop/state.sibling-<id>.json,而非 state.json
+# 并行任务:用 --task <id> 读取 .hello-dev/state.sibling-<id>.json,而非 state.json
 node scripts/codex-prompt.js wave --wave 1 --task <id> --project "my-app" --project-path /abs/path
 ```
 
@@ -162,8 +162,8 @@ node scripts/codex-prompt.js wave --wave 1 --task <id> --project "my-app" --proj
 每个 prompt 符合 [Codex 主机适配器](modules/hosts/codex.md) 规范:范围、文件边界、验收标准、约束块。Agent 使用生成的 prompt 和 title 调用 `mcp__codex_app__create_thread`,然后调用 `mcp__codex_app__wait_threads` 收集结果。
 ## 记忆
 
-- **状态和开发日志**:执行状态、审批、重试写入 `.devloop/state.json`(并行任务使用 `--task <id>` 写入 `.devloop/state.sibling-<id>.json`);开发过程写入 `docs/progress_coding/`。
-- **记忆存储**:唯一存储是目标项目的 `.devloop/memory.json`,由 `scripts/memory.js` 读写;全局指令文件中的 L0-L4 五层是其**分层标签**,不是第二套系统(Claude Code 写入 `~/.claude/CLAUDE.md`,WorkBuddy 写入 `~/.workbuddy/user-*/MEMORY.md`,`scripts/patch-claude-md.js --host=<claude|workbuddy>` 根据主机自动选择)。
+- **状态和开发日志**:执行状态、审批、重试写入 `.hello-dev/state.json`(并行任务使用 `--task <id>` 写入 `.hello-dev/state.sibling-<id>.json`);开发过程写入 `docs/progress_coding/`。
+- **记忆存储**:唯一存储是目标项目的 `.hello-dev/memory.json`,由 `scripts/memory.js` 读写;全局指令文件中的 L0-L4 五层是其**分层标签**,不是第二套系统(Claude Code 写入 `~/.claude/CLAUDE.md`,WorkBuddy 写入 `~/.workbuddy/user-*/MEMORY.md`,`scripts/patch-claude-md.js --host=<claude|workbuddy>` 根据主机自动选择)。
 - **写入门禁**:**候选 -> 验证 -> 合并/拒绝 -> 写入**。只接受已确认的事实;拒绝推测、临时方案和日志。优先合并而非创建新条目。`memory.js` 是唯一的读写者。
 - **语言与能力边界**:写入门禁按用户既有决策，仅使用**英文**谓词、推测、临时方案与日志词表。中文及其他语言不会经过这些词表的语义筛查；结构和 source 校验不验证事实真实性。门禁是**纪律的第一道栅栏,不是安全边界**。非英文内容和证据真实性需人工核实，不自动翻译，也不擅自恢复双语词表。
 - **详细规则**:写入门禁详情、已知误报、CLI 快速参考和可移植包清单见 [references/memory-guide.md](references/memory-guide.md)。

@@ -1,5 +1,5 @@
 ---
-name: devloop-pro
+name: hello-dev
 description: >
   Development enhancement framework with staged execution, task decomposition, parallel multi-agent
   dispatch with file conflict detection, five-layer memory with evidence pipeline, dual-gate approval
@@ -15,14 +15,14 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the devloop-pro skill directory}/scripts/hook-resolver.js" git-gate'
+          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
           timeout: 10
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the devloop-pro skill directory}/scripts/hook-resolver.js" opsgate'
+          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
           timeout: 10
 ---
 
-# DevLoop Pro
+# Hello Dev
 
 **English** | [Chinese](SKILL.zh-CN.md)
 
@@ -30,14 +30,14 @@ Transform confirmed requirements into verifiable deliverables; do not treat more
 
 ## Overview
 
-DevLoop Pro is a development enhancement system built around six problems that AI-assisted development repeatedly hits:
+Hello Dev is a development enhancement system built around six problems that AI-assisted development repeatedly hits:
 
-1. **Parallel execution collides**: multiple sub-agents modifying the same file silently overwrite each other. DevLoop solves this with dependency-graph-driven wave scheduling and automatic file conflict detection -- overlapping affected files force sequential execution within a wave.
-2. **Experience disappears**: lessons from past tasks live only in conversation context that gets discarded. DevLoop provides a five-layer memory system (L0-L4) with a write gate that rejects speculation, plus an evidence pipeline that tracks whether each recorded experience actually helped (improved/regressed/no_effect/unknown).
-3. **Approval boundaries are fuzzy**: task confirmation is treated as blanket authorization, leading to unintended commits or deployments. DevLoop enforces separate confirmation for Git writes, ops commands (kubectl, systemctl, terraform), and deployment -- with dual PreToolUse hooks that classify risk before execution.
-4. **Tests pass but nothing was verified**: running a test suite is not the same as proving the change is correct. DevLoop uses risk-first four-layer verification: identify what this change could break, then prove each risk with build/regression/behavior/boundary evidence.
-5. **State is lost on session restart**: conversation history is the only record, and it is unreliable. DevLoop persists all approvals, retries, checkpoints, and decomposition state in `.devloop/state.json`, recoverable via `resume`.
-6. **Platform lock-in**: the same workflow must run on different AI hosts. DevLoop decouples scheduling from dispatch through a Host Adapter layer, so the core state machine is host-agnostic while each platform provides its own sub-agent invocation mechanism.
+1. **Parallel execution collides**: multiple sub-agents modifying the same file silently overwrite each other. Hello Dev solves this with dependency-graph-driven wave scheduling and automatic file conflict detection -- overlapping affected files force sequential execution within a wave.
+2. **Experience disappears**: lessons from past tasks live only in conversation context that gets discarded. Hello Dev provides a five-layer memory system (L0-L4) with a write gate that rejects speculation, plus an evidence pipeline that tracks whether each recorded experience actually helped (improved/regressed/no_effect/unknown).
+3. **Approval boundaries are fuzzy**: task confirmation is treated as blanket authorization, leading to unintended commits or deployments. Hello Dev enforces separate confirmation for Git writes, ops commands (kubectl, systemctl, terraform), and deployment -- with dual PreToolUse hooks that classify risk before execution.
+4. **Tests pass but nothing was verified**: running a test suite is not the same as proving the change is correct. Hello Dev uses risk-first four-layer verification: identify what this change could break, then prove each risk with build/regression/behavior/boundary evidence.
+5. **State is lost on session restart**: conversation history is the only record, and it is unreliable. Hello Dev persists all approvals, retries, checkpoints, and decomposition state in `.hello-dev/state.json`, recoverable via `resume`.
+6. **Platform lock-in**: the same workflow must run on different AI hosts. Hello Dev decouples scheduling from dispatch through a Host Adapter layer, so the core state machine is host-agnostic while each platform provides its own sub-agent invocation mechanism.
 
 It provides structured execution paths (design/full, implementation, fast) with mandatory Testing and Review stages, interactive architecture decision guidance, and an evolution system that evaluates experience candidates without auto-activating them.
 
@@ -176,7 +176,7 @@ node scripts/codex-prompt.js wave --wave 1 --project "my-app" --project-path /ab
 # Generate prompt for a single subtask
 node scripts/codex-prompt.js generate --subtask t1
 
-# Parallel task: read .devloop/state.sibling-<id>.json instead of state.json
+# Parallel task: read .hello-dev/state.sibling-<id>.json instead of state.json
 node scripts/codex-prompt.js wave --wave 1 --task <id> --project "my-app" --project-path /abs/path
 ```
 
@@ -186,8 +186,8 @@ Each prompt conforms to the [Codex host adapter](modules/hosts/codex.md) specifi
 
 ## Memory
 
-- **State and development logs**: Execution state, approvals, retries go to `.devloop/state.json` (parallel tasks use `--task <id>` to write to `.devloop/state.sibling-<id>.json`); development process goes to `docs/progress_coding/`.
-- **Memory storage**: The only storage is the target project's `.devloop/memory.json`, read and written by `scripts/memory.js`; the L0-L4 five layers in global instruction files are its **layered labels**, not a second system (Claude Code writes to `~/.claude/CLAUDE.md`, WorkBuddy writes to `~/.workbuddy/user-*/MEMORY.md`, with `scripts/patch-claude-md.js --host=<claude|workbuddy>` automatically selecting based on host).
+- **State and development logs**: Execution state, approvals, retries go to `.hello-dev/state.json` (parallel tasks use `--task <id>` to write to `.hello-dev/state.sibling-<id>.json`); development process goes to `docs/progress_coding/`.
+- **Memory storage**: The only storage is the target project's `.hello-dev/memory.json`, read and written by `scripts/memory.js`; the L0-L4 five layers in global instruction files are its **layered labels**, not a second system (Claude Code writes to `~/.claude/CLAUDE.md`, WorkBuddy writes to `~/.workbuddy/user-*/MEMORY.md`, with `scripts/patch-claude-md.js --host=<claude|workbuddy>` automatically selecting based on host).
 - **Write gate**: **Candidate -> Validation -> Merge/Reject -> Write**. Only accept confirmed facts; reject speculation, temporary solutions, and logs. Merge is preferred over creating new entries. `memory.js` is the only reader and writer.
 - **Language and strength boundary**: The write gate uses **English-only** predicate/speculation/temporary/log word lists by an existing user decision. Chinese and other languages are not semantically screened by these lists; structural/source checks are not factual validation. It is **the first fence of discipline, not a security boundary**. Manually confirm non-English content and evidence truthfulness. No automatic language translation or restoration of a bilingual gate.
 - **Detailed rules**: Write gate details, known false positives, CLI quick reference, and portable package manifest are in [references/memory-guide.md](references/memory-guide.md).

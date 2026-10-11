@@ -65,7 +65,7 @@
 | 操作系统（Linux/Windows） | Hello Dev 状态机 |
 | 进程 | AI 代理会话 |
 | 权限系统（sudo/rbac） | 双闸门（git-gate + opsgate） |
-| 日志系统（syslog/journal） | `.devloop/state.json` + 开发日志 |
+| 日志系统（syslog/journal） | `.hello-dev/state.json` + 开发日志 |
 | 进程间通信 | 波次调度 + 文件冲突检测 |
 | 检查点/恢复（checkpoint/restore） | `resume` + 阶段回滚 |
 | 审计追踪（audit trail） | 证据链 + 记忆系统 |

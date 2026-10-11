@@ -265,7 +265,7 @@ AI 助手会自动完成安装和配置。
 | 状态机 | 完整支持 | 通过 `TaskCreate/Update` 同步阶段状态 |
 | 双闸门 | 完整支持 | PreToolUse hooks 自动注册 |
 | 波次调度 | 完整支持 | 通过 `Agent` 工具派发子代理 |
-| 五层记忆 | 完整支持 | `.devloop/memory.json` 持久化 |
+| 五层记忆 | 完整支持 | `.hello-dev/memory.json` 持久化 |
 | 四层验证 | 完整支持 | 验证阶段自动执行 |
 | grill-me | 完整支持 | 需求拷问技能已捆绑 |
 | ui-ux-pro-max | 完整支持 | UI/UX 设计规范技能已捆绑 |
@@ -309,7 +309,7 @@ WorkBuddy 的专家中心提供了预配置的专家团：
 | 状态机 | 完整支持 | 通过 `Task` 工具管理阶段 |
 | 双闸门 | 需要手动配置 | 需要手动注册 PreToolUse hooks |
 | 波次调度 | 完整支持 | 通过 `Task` 工具派发子代理 |
-| 五层记忆 | 完整支持 | `.devloop/memory.json` 持久化 |
+| 五层记忆 | 完整支持 | `.hello-dev/memory.json` 持久化 |
 | 四层验证 | 完整支持 | 验证阶段自动执行 |
 | grill-me | 完整支持 | 需求拷问技能已捆绑 |
 | ui-ux-pro-max | 完整支持 | UI/UX 设计规范技能已捆绑 |
@@ -333,7 +333,7 @@ WorkBuddy 的专家中心提供了预配置的专家团：
 | 状态机 | 完整支持 | 通过状态文件管理 |
 | 双闸门 | 需要手动配置 | 需要手动注册 hooks |
 | 波次调度 | 有限支持 | 通过 `create_thread` 派发 |
-| 五层记忆 | 完整支持 | `.devloop/memory.json` 持久化 |
+| 五层记忆 | 完整支持 | `.hello-dev/memory.json` 持久化 |
 | 四层验证 | 完整支持 | 验证阶段自动执行 |
 | grill-me | 完整支持 | 需求拷问技能已捆绑 |
 | ui-ux-pro-max | 完整支持 | UI/UX 设计规范技能已捆绑 |
@@ -602,7 +602,7 @@ HELLODEV_OPSGATE_TRACE=1             # 启用闸门追踪
 
 ### 状态文件
 
-Hello Dev 的状态存储在 `.devloop/state.json`：
+Hello Dev 的状态存储在 `.hello-dev/state.json`：
 
 ```json
 {
@@ -629,7 +629,7 @@ Hello Dev 的状态存储在 `.devloop/state.json`：
 
 ### 记忆文件
 
-记忆存储在 `.devloop/memory.json`：
+记忆存储在 `.hello-dev/memory.json`：
 
 ```json
 [
@@ -664,7 +664,7 @@ Hello Dev 的状态存储在 `.devloop/state.json`：
 
 ### Q5：Hello Dev 的数据存储在哪里？
 
-**A**：所有数据都存储在项目本地的 `.devloop/` 目录中。不会上传到云端，完全由你控制。
+**A**：所有数据都存储在项目本地的 `.hello-dev/` 目录中。不会上传到云端，完全由你控制。
 
 ### Q6：WorkBuddy 和 Claude Code 哪个更适合用 Hello Dev？
 

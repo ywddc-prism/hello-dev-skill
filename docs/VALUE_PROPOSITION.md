@@ -65,7 +65,7 @@ These participation points are not optional -- they are enforced by the workflow
 | OS (Linux/Windows) | Hello Dev state machine |
 | Process | AI agent session |
 | Permission system (sudo/rbac) | Dual gates (git-gate + opsgate) |
-| Logging (syslog/journal) | `.devloop/state.json` + dev logs |
+| Logging (syslog/journal) | `.hello-dev/state.json` + dev logs |
 | IPC | Wave scheduling + file conflict detection |
 | Checkpoint/restore | `resume` + stage rollback |
 | Audit trail | Evidence chain + memory system |
