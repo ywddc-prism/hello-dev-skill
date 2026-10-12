@@ -1,0 +1,19 @@
+# Line-ending policy.
+#
+# Why this file exists: this machine runs with core.autocrlf=true and had no
+# .gitattributes, so checkouts were CRLF while the committed blobs were LF. The
+# committed content was always fine, but the mixed working state caused real
+# damage once: scripts/inline-hooks.js strips a leading shebang with /^#!.*\n/,
+# and `.` does not match `\r`, so on a CRLF checkout the strip silently failed
+# and the shebang got inlined into the middle of both generated hooks, making
+# them unparseable. Declaring the policy here removes the whole class.
+#
+# The repository is published, so normalise to LF everywhere; the blobs already
+# are LF, which means this changes checkouts but not the published content.
+* text=auto eol=lf
+
+# Binary assets must never be normalised.
+*.png binary
+*.pptx binary
+*.zip binary
+*.tar.gz binary
