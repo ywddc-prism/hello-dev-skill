@@ -79,10 +79,12 @@ for (const rel of CLAIM_SITES) {
 const SEEDED = [
   { expect: true, text: 'Optional learning and reflection are expanded only when the user needs them and do not block delivery.' },
   { expect: true, text: 'Optional Evolution/Reflection expanded only when user needs them; not a delivery threshold.' },
-  // Chinese optionality denial test removed (English-only OSS version)
-  // Chinese optionality denial test removed (English-only OSS version)
+  { expect: true, text: '可选的学习和反思仅在用户需要时展开,不阻塞交付。' },
+  // Chinese negation must be narrow: a line that denies a DIFFERENT requirement while
+  // still asserting optionality is a real defect, not a denial of optionality.
+  { expect: true, text: '学习和反思不是必须的,可选执行。' },
   { expect: false, text: 'Learn, Evolution, Reflection, and Archive are **mandatory on every execution path** -- and are not optional.' },
-  { expect: false, text: 'Learn, Evolution, Reflection, Archive are mandatory on all execution paths, not optional.' },
+  { expect: false, text: 'Learn、Evolution、Reflection、Archive 在全部执行路径上均为强制阶段,不是可选阶段。' },
   // The real state-protocol insertion, which must not fire on itself.
   { expect: false, text: '- Learn, Evolution, Reflection, and Archive are mandatory on every state-bearing path (`design/full`, `implementation`, `other`, `fast`); none of them may be skipped, and any document that permits skipping them contradicts `scripts/lib/stages.js`, which is the single source for the stage list.' },
   { expect: false, text: 'Optional: Generate usage report and clean up unused plugins:' },

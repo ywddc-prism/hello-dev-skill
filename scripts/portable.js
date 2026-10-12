@@ -201,7 +201,14 @@ function verifyHookPaths() {
 }
 
 function tar(args) {
-  const r = spawnSync('tar', args, { encoding: 'utf8' });
+  // A Windows archive path ("C:\..."/"C:/...") contains a colon, which GNU tar
+  // reads as the remote "host:path" archive spec and rejects with
+  // "Cannot connect to C: resolve failed" -- so pack writes nothing and every
+  // later step sees an empty archive name. --force-local pins the archive to
+  // the local filesystem. It is a GNU tar option, so pass it on Windows only,
+  // where git-for-windows supplies the tar that gets used.
+  const full = process.platform === 'win32' ? ['--force-local', ...args] : args;
+  const r = spawnSync('tar', full, { encoding: 'utf8' });
   if (r.error) die('Failed to execute tar: ' + r.error.message);
   return r;
 }

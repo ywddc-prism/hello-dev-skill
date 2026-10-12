@@ -748,7 +748,7 @@ test('isSelfAgentName denies the main agent and accepts real sub-agent names', (
     // the exact loophole this rule exists to close. Any enumerated separator list is a guess,
     // so the rule now drops every non-alphanumeric character.
     'main.agent', 'main/agent', 'main\\agent', 'main:agent', 'main|agent', 'main,agent',
-    'MAIN.AGENT', ' main.agent ', 'main\tagent', 'm-a-i-n', 'mainagent',
+    'MAIN.AGENT', ' main.agent ', 'main\tagent', 'm-a-i-n', 'main＿agent',
     // Role/placeholder phrases that name no distinct actor.
     'agent', 'subagent', 'sub-agent', 'the main agent', 'main (self)', 'main main agent',
     'main self', 'main and self', 'it is the main agent', 'a main agent', 'none-agent', 'me',

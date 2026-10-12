@@ -61,7 +61,14 @@ function riskOf(command) {
  });
  if (!out.trim()) return null; // Passed commands have no risk level prompt
  const reason = JSON.parse(out).hookSpecificOutput.permissionDecisionReason;
- const m = reason.match(/·\s*(L[0-5])/);
+ // Header format: "Hello Dev · Ops approval gate -> [TAG] Ln · Pre-execution approval required".
+ // The level sits AFTER the tag and BEFORE the middot, so the old /·\s*(L[0-5])/ never matched
+ // (it looked for the level after the middot). The tag is not fixed -- it varies by risk level
+ // ([WARN] for L2/L3, [HIGH] for L4, [BLOCKED] for L5; unclassified denies carry "[BLOCKED]
+ // Default block" with no level) -- so it is matched generically rather than enumerated, and
+ // anchored on the gate's "-> " arrow. A fixed tag list would silently return null again the
+ // moment a level's tag changes, which is the exact defect being fixed here.
+ const m = reason.match(/->\s*\[[A-Z]+\]\s*(L[0-5])/);
  return m ? m[1] : null;
 }
 

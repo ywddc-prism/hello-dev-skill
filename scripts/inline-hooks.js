@@ -41,6 +41,12 @@ const CHECK_ONLY = process.argv.includes('--check');
 function loadModule(name) {
   const p = path.join(ROOT, 'scripts', 'lib', `${name}.js`);
   let src = fs.readFileSync(p, 'utf8');
+  // Normalize to LF before stripping: on a CRLF checkout (core.autocrlf=true on
+  // Windows) /^#!.*\n/ cannot match a "\r\n"-terminated shebang, so the raw
+  // '#!/usr/bin/env node' line would land in the middle of the generated hook
+  // and turn it into a syntax error. buildBlock converts the finished block
+  // back to the hook file's own line ending.
+  src = src.replace(/\r\n/g, '\n');
   src = src.replace(/^#!.*\n/, '');
   src = src.replace(/^\s*'use strict';\s*/m, '');
   // Remove module export statements — exported objects are destructured via const in the hook
@@ -53,6 +59,11 @@ function loadModule(name) {
 
 /** Generate inline block. */
 function buildBlock(hookPath, moduleNames) {
+  const hookSrc = fs.readFileSync(hookPath, 'utf8');
+  // Emit the block using the hook file's own line ending. A hardcoded LF block
+  // inside a CRLF checkout never compares equal to the file on disk, so --check
+  // fails forever even though the inlined content is identical.
+  const eol = hookSrc.includes('\r\n') ? '\r\n' : '\n';
   const mods = moduleNames.map(loadModule);
   const parts = [];
   parts.push(BEGIN);
@@ -77,7 +88,6 @@ function buildBlock(hookPath, moduleNames) {
   // Exception: if the hook uses `OPS.assessCommand(...)` style **object access**
   // (original require was `const OPS = require(...)`), OPS no longer exists
   // after inlining; must add an object alias.
-  const hookSrc = fs.readFileSync(hookPath, 'utf8');
   if (/\bOPS\s*\./.test(hookSrc)) {
     parts.push('// Compatibility alias for the original `OPS.xxx` object access form in the hook');
     parts.push('// (original require variable name was OPS)');
@@ -85,7 +95,9 @@ function buildBlock(hookPath, moduleNames) {
     parts.push('');
   }
   parts.push(END);
-  return parts.join('\n');
+  // Every element above is LF-only (module bodies were normalized in loadModule),
+  // so a single global conversion is safe here.
+  return parts.join('\n').replace(/\n/g, eol);
 }
 
 /** Replace existing block in the hook, or insert at the first require line position. */

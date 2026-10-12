@@ -653,7 +653,7 @@ Memory is stored in `.hello-dev/memory.json`:
 
 ### Q2: Can I use Hello Dev on small projects?
 
-**A**: Yes. Hello Dev provides `tiny` and `fast` two lightweight paths, suitable for small projects. The `tiny` path has only 3 stages (Bootstrap → Implementation → Ship), suitable for single-file modifications.
+**A**: Yes. Hello Dev provides `tiny` and `fast` two lightweight paths, suitable for small projects. The `tiny` path runs the same 11 stages as `fast`, merged into four phases executed by the lead agent alone with no sub-agents spawned, and suits single-file modifications.
 
 ### Q3: Which programming languages does Hello Dev support?
 

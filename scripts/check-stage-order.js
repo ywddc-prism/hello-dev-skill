@@ -240,8 +240,10 @@ for (const file of walk(ROOT)) {
  * number written in prose. So this check is negative: it scans every live document for a
  * "<n> stages" claim and fails any n that is neither the full nor the non-full count.
  *
- * Two explicit non-claims are excluded: `_quick-reference.md` restates historical counts as measurements, which carry a date or a
- * quoted guard output and are not present-tense claims about the framework.
+ * Two explicit non-claims are excluded: the zh-CN editions state the count in Chinese
+ * ("15 个阶段") and are verified by the chain check above, not by this English "<n> stages"
+ * scan; and `_quick-reference.md` restates historical counts as measurements, which carry a
+ * date or a quoted guard output and are not present-tense claims about the framework.
  */
 const COUNT_CLAIM = /(\d{1,2})\s*(?:\/\s*\d{1,2}\s*)?stages\b/gi;
 const HISTORY_MARKERS = /\b(measured|observed|was|baseline|log entry|->|reported)\b/i;

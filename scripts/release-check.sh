@@ -82,8 +82,13 @@ check_install() {
   if [ -z "$ver" ]; then add FAIL install "$label version" 'existing target has no readable version'; return; fi
   if [ "$ver" = "$SRC_VER" ]; then add PASS install "$label version" "v$ver matches source"; else add FAIL install "$label version" "v$ver != v$SRC_VER"; fi
   hash="$(file_hash "$dir/SKILL.md")"; count="$(diff_count "$dir")"
-  if [ "$count" = 'unknown' ]; then add UNKNOWN install "$label content" 'content comparison unavailable'
-  elif [ "$hash" = "$SRC_HASH" ] && [ "$count" = 0 ]; then add PASS install "$label content" 'entry hash matches; 0 differences'
+  # Test the entry hash before the rsync-derived diff count. A differing hash is
+  # already conclusive drift, and rsync is not present on every platform
+  # (git-for-windows ships none), so consulting $count first would downgrade an
+  # obvious mismatch to UNKNOWN instead of reporting it.
+  if [ "$hash" != "$SRC_HASH" ]; then add FAIL install "$label content" "entry hash $hash != source $SRC_HASH"
+  elif [ "$count" = 'unknown' ]; then add UNKNOWN install "$label content" 'entry hash matches; full content comparison unavailable (rsync missing)'
+  elif [ "$count" = 0 ]; then add PASS install "$label content" 'entry hash matches; 0 differences'
   else add FAIL install "$label content" "$count differences; entry hash $hash"; fi
 }
 check_install claude "${HELLODEV_CLAUDE_TARGET:-$HOME/.claude/skills/hello-dev}"
@@ -150,9 +155,26 @@ report_runtime git-gate "${HELLODEV_GIT_GATE_TRACE:-/tmp/hello-dev-git-gate-trac
 report_runtime opsgate "${HELLODEV_OPSGATE_TRACE:-/tmp/hello-dev-opsgate-trace.log}" 'runtime version(opsgate.js)'
 add UNKNOWN runtime 'host approval acceptance' 'Requires real host calls and observed ask/deny consumption for both hooks; not established by config or caller/version records'
 probe_writable() {
-  local tmpd
+  local tmpd log
   tmpd="$(mktemp -d)" || { add FAIL runtime "$3" 'cannot create isolated probe'; return; }
-  if printf '%s' '{"tool_name":"Bash","tool_input":{"command":"git status"}}' | env -u HELLODEV_GIT_GATE -u HELLODEV_OPSGATE -u HELLODEV_GIT_GATE_SKIP_DIRS -u HELLODEV_OPSGATE_SKIP_DIRS "$2_TRACE=$tmpd/t.log" "$2_CALLER=release-check" node "$SRC_ROOT/hooks/$1" >/dev/null 2>&1 && node -e 'const fs=require("fs");const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse);if(!rows.some(d=>d.caller==="release-check"&&d.gate===process.argv[2]&&d.event==="inspect"))process.exit(1);' "$tmpd/t.log" "hello-dev/${1%.js}" >/dev/null 2>&1; then
+  # Node is a native binary, so under Git Bash (MSYS) it resolves a POSIX
+  # '/tmp/...' trace path against the current drive (G:\tmp\...) instead of the
+  # MSYS mount. The hook's appendFileSync then throws, its catch swallows the
+  # error and no trace row appears, which this probe would misreport as the hook
+  # being unable to write. Hand Node -- and only Node -- a native path; bash
+  # keeps using the POSIX $tmpd for mkdir/cleanup.
+  log="$tmpd/t.log"
+  if command -v cygpath >/dev/null 2>&1; then log="$(cygpath -m "$log")"; fi
+  # Scrub the inherited gate switches in a subshell instead of via `env -u`.
+  # bash can unset and assign natively, and `env` is not reliably coreutils:
+  # uv's installer has users create a ~/.local/bin/env PATH snippet, which
+  # shadows /usr/bin/env and silently discards all of its arguments, so the
+  # hook would never run at all. Both forms are identical where env is sane.
+  if printf '%s' '{"tool_name":"Bash","tool_input":{"command":"git status"}}' | (
+        unset HELLODEV_GIT_GATE HELLODEV_OPSGATE HELLODEV_GIT_GATE_SKIP_DIRS HELLODEV_OPSGATE_SKIP_DIRS
+        export "${2}_TRACE=$log" "${2}_CALLER=release-check"
+        node "$SRC_ROOT/hooks/$1"
+      ) >/dev/null 2>&1 && node -e 'const fs=require("fs");const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse);if(!rows.some(d=>d.caller==="release-check"&&d.gate===process.argv[2]&&d.event==="inspect"))process.exit(1);' "$log" "hello-dev/${1%.js}" >/dev/null 2>&1; then
     add PASS runtime "$3" 'Isolated direct probe only; not a host call'
   else add FAIL runtime "$3" 'isolated direct probe failed'; fi
   rm -rf "$tmpd"

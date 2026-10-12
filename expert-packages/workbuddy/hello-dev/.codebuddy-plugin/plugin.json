@@ -1,0 +1,291 @@
+{
+  "name": "hello-dev",
+  "version": "1.2.0",
+  "description": "Hello Dev Delivery Team - a governed multi-agent workflow that drives Hello Dev's full capability set: scope gates, PRD analysis, feature design, architecture decisions, decomposition, wave-parallel execution, layered verification, evidence review, dual approval gates, instant learning and auditable delivery",
+  "author": {
+    "name": "Hello Dev",
+    "email": "helloDev@local"
+  },
+  "agents": [
+    "./agents/hello-dev-team-lead.md",
+    "./agents/hello-dev-scope-gatekeeper.md",
+    "./agents/hello-dev-prd-analyst.md",
+    "./agents/hello-dev-ux-designer.md",
+    "./agents/hello-dev-ui-designer.md",
+    "./agents/hello-dev-architect.md",
+    "./agents/hello-dev-task-decomposer.md",
+    "./agents/hello-dev-verifier.md",
+    "./agents/hello-dev-implementer.md",
+    "./agents/hello-dev-tool-researcher.md",
+    "./agents/hello-dev-recovery-registrar.md",
+    "./agents/hello-dev-reviewer.md",
+    "./agents/hello-dev-gatekeeper.md",
+    "./agents/hello-dev-memory-curator.md",
+    "./agents/hello-dev-learning-mentor.md"
+  ],
+  "expertType": "team",
+  "agentName": "hello-dev-team-lead",
+  "teamInfo": {
+    "leadAgent": "hello-dev-team-lead",
+    "memberAgents": [
+      "hello-dev-scope-gatekeeper",
+      "hello-dev-prd-analyst",
+      "hello-dev-ux-designer",
+      "hello-dev-ui-designer",
+      "hello-dev-architect",
+      "hello-dev-task-decomposer",
+      "hello-dev-verifier",
+      "hello-dev-implementer",
+      "hello-dev-tool-researcher",
+      "hello-dev-recovery-registrar",
+      "hello-dev-reviewer",
+      "hello-dev-gatekeeper",
+      "hello-dev-memory-curator",
+      "hello-dev-learning-mentor"
+    ]
+  },
+  "displayName": {
+    "en": "Hello Dev Delivery Team",
+    "zh": "Hello Dev 受控交付专家团"
+  },
+  "profession": {
+    "en": "Hello Dev Delivery Team",
+    "zh": "Hello Dev 受控交付专家团"
+  },
+  "displayDescription": {
+    "en": "Full-capability Hello Dev team: PRD analysis, feature design, architecture decisions, governed delivery with wave-parallel execution, layered verification, independent review, dual Git/ops approval and instant learning.",
+    "zh": "Hello Dev 全能力团队：需求分析、架构决策、受控交付、波次编排、分层验证与证据复核。"
+  },
+  "avatar": "avatars/team.png",
+  "categoryId": "10-ProjectQuality",
+  "defaultInitPrompt": {
+    "zh": "用 Hello Dev 受控交付流程帮我完成一个改造任务：先确认边界和授权，再分解成可独立验证的子任务并按波次推进，最后给出带证据的交付结论。",
+    "en": "Run a governed Hello Dev delivery for my change: confirm scope and authorization, decompose into independently verifiable subtasks, execute by waves, and deliver with evidence."
+  },
+  "plugin": "hello-dev",
+  "tags": [
+    {
+      "en": "Governed Delivery",
+      "zh": "受控交付"
+    },
+    {
+      "en": "Wave-Parallel Orchestration",
+      "zh": "波次并行编排"
+    },
+    {
+      "en": "Evidence Chain Review",
+      "zh": "证据链复核"
+    }
+  ],
+  "quickPrompts": [
+    {
+      "zh": "用 Hello Dev 受控交付流程帮我完成一个改造任务：先确认边界和授权，再分解成可独立验证的子任务并按波次推进，最后给出带证据的交付结论。",
+      "en": "Run a governed Hello Dev delivery for my change: confirm scope and authorization, decompose into independently verifiable subtasks, execute by waves, and deliver with evidence."
+    },
+    {
+      "zh": "把这份需求拆成可并行的子任务：标出依赖、波次顺序和每个任务会改哪些文件，并指出同波文件冲突需要降级串行的地方。",
+      "en": "Decompose this requirement into parallelizable subtasks: list dependencies, wave order, the files each task touches, and where same-wave file conflicts force sequential execution."
+    },
+    {
+      "zh": "这次改动有没有被真正验证过？先列出它可能破坏的风险，再逐条给出构建、回归、行为和边界四层的实证，别只告诉我测试跑绿了。",
+      "en": "Has this change actually been verified? List the risks it could break, then give build, regression, behavior and boundary evidence for each one - do not just tell me the tests passed."
+    }
+  ],
+  "members": [
+    {
+      "id": "hello-dev-team-lead",
+      "profession": {
+        "en": "Governed Delivery Lead",
+        "zh": "受控交付总监"
+      },
+      "avatar": "avatars/hello-dev-team-lead.png",
+      "role": "lead",
+      "displayName": {
+        "en": "Gu Shoujie",
+        "zh": "顾守界"
+      }
+    },
+    {
+      "id": "hello-dev-scope-gatekeeper",
+      "profession": {
+        "en": "Scope & Authorization Gatekeeper",
+        "zh": "范围与授权守门员"
+      },
+      "avatar": "avatars/hello-dev-scope-gatekeeper.png",
+      "role": "member",
+      "displayName": {
+        "en": "Yan Shoubian",
+        "zh": "严守边"
+      }
+    },
+    {
+      "id": "hello-dev-prd-analyst",
+      "profession": {
+        "en": "Product Requirements Analyst",
+        "zh": "需求与产品分析师"
+      },
+      "avatar": "avatars/hello-dev-prd-analyst.png",
+      "role": "member",
+      "displayName": {
+        "en": "Xu Qianxi",
+        "zh": "许析需"
+      }
+    },
+    {
+      "id": "hello-dev-ux-designer",
+      "profession": {
+        "en": "UX & Interaction Designer",
+        "zh": "交互与用户体验设计师"
+      },
+      "avatar": "",
+      "role": "member",
+      "displayName": {
+        "en": "Liu Huxing",
+        "zh": "柳互行"
+      }
+    },
+    {
+      "id": "hello-dev-ui-designer",
+      "profession": {
+        "en": "Visual & Interface Designer",
+        "zh": "视觉与界面设计师"
+      },
+      "avatar": "",
+      "role": "member",
+      "displayName": {
+        "en": "Chen Shimei",
+        "zh": "陈视美"
+      }
+    },
+    {
+      "id": "hello-dev-architect",
+      "profession": {
+        "en": "Architecture & Design Decision Specialist",
+        "zh": "架构与设计决策师"
+      },
+      "avatar": "avatars/hello-dev-architect.png",
+      "role": "member",
+      "displayName": {
+        "en": "Zhu Jiaju",
+        "zh": "祝架构"
+      }
+    },
+    {
+      "id": "hello-dev-task-decomposer",
+      "profession": {
+        "en": "Decomposition & Wave Architect",
+        "zh": "任务分解与波次架构师"
+      },
+      "avatar": "avatars/hello-dev-task-decomposer.png",
+      "role": "member",
+      "displayName": {
+        "en": "Shi Zhanbo",
+        "zh": "施展波"
+      }
+    },
+    {
+      "id": "hello-dev-verifier",
+      "profession": {
+        "en": "Layered Verification Officer",
+        "zh": "分层验证官"
+      },
+      "avatar": "avatars/hello-dev-verifier.png",
+      "role": "member",
+      "displayName": {
+        "en": "Gai Quanzheng",
+        "zh": "盖全证"
+      }
+    },
+    {
+      "id": "hello-dev-reviewer",
+      "profession": {
+        "en": "Independent Evidence Reviewer",
+        "zh": "独立复核官"
+      },
+      "avatar": "avatars/hello-dev-reviewer.png",
+      "role": "member",
+      "displayName": {
+        "en": "Yu Bicha",
+        "zh": "俞必查"
+      }
+    },
+    {
+      "id": "hello-dev-gatekeeper",
+      "profession": {
+        "en": "Dual-Gate Governance Officer",
+        "zh": "双闸门治理官"
+      },
+      "avatar": "avatars/hello-dev-gatekeeper.png",
+      "role": "member",
+      "displayName": {
+        "en": "Ji Shuangzha",
+        "zh": "稽双闸"
+      }
+    },
+    {
+      "id": "hello-dev-memory-curator",
+      "profession": {
+        "en": "Memory & Evidence Curator",
+        "zh": "经验与证据链管家"
+      },
+      "avatar": "avatars/hello-dev-memory-curator.png",
+      "role": "member",
+      "displayName": {
+        "en": "Chen Jiyan",
+        "zh": "沉积验"
+      }
+    },
+    {
+      "id": "hello-dev-learning-mentor",
+      "profession": {
+        "en": "Instant Learning Mentor",
+        "zh": "即时学习导师"
+      },
+      "avatar": "avatars/hello-dev-learning-mentor.png",
+      "role": "member",
+      "displayName": {
+        "en": "Wu Xuesi",
+        "zh": "吴学思"
+      }
+    },
+    {
+      "id": "hello-dev-implementer",
+      "profession": {
+        "en": "Implementation Engineer",
+        "zh": "实施工程师"
+      },
+      "avatar": "",
+      "role": "member",
+      "displayName": {
+        "en": "Du Shishi",
+        "zh": "杜施实"
+      }
+    },
+    {
+      "id": "hello-dev-tool-researcher",
+      "profession": {
+        "en": "Tool Research Analyst",
+        "zh": "工具调研员"
+      },
+      "avatar": "",
+      "role": "member",
+      "displayName": {
+        "en": "Zhen Qiming",
+        "zh": "甄器明"
+      }
+    },
+    {
+      "id": "hello-dev-recovery-registrar",
+      "profession": {
+        "en": "Recovery & Rework Registrar",
+        "zh": "恢复与返工台账官"
+      },
+      "avatar": "",
+      "role": "member",
+      "displayName": {
+        "en": "Ji Fuming",
+        "zh": "纪复明"
+      }
+    }
+  ]
+}

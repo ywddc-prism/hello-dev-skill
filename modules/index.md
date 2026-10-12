@@ -28,7 +28,7 @@
 | [core\retry-state-machine.md](core/retry-state-machine.md) | Retry State Machine - Retry Protocol | Actual storage, commands, and transitions follow state-proto... |
 | [core\rollback.md](core/rollback.md) | Rollback Mechanism — Teaching Reference | Authoritative Source: Complete rules for rollback and retry... |
 | [core\self-review.md](core/self-review.md) | Self Review | Compare requirements against actual behavior; do not substit... |
-| [core\state-protocol.md](core/state-protocol.md) | State Protocol - State Persistence Protocol | Default active state is the target project's .hello-dev/state.... |
+| [core\state-protocol.md](core/state-protocol.md) | State Protocol - State Persistence Protocol | Default active state is the target project's .hello-dev/stat... |
 | [core\task\classifier.md](core/task/classifier.md) | Task Classifier | Classify by actual side effects and decision needs; do not m... |
 | [core\task\decomposition.md](core/task/decomposition.md) | Task Decomposition | Decomposition is mandatory after requirement confirmation. T... |
 | [core\task\escalation.md](core/task/escalation.md) | Escalation Criteria and Module-Root Definition |  |
@@ -63,7 +63,7 @@
 | [paths\dev-mode-guide.md](paths/dev-mode-guide.md) | Development Mode Guide | Info: Positioning: This document describes the three develop... |
 | [paths\fast-path.md](paths/fast-path.md) | Fast Path | Reduce design and explanation; do not reduce authorization,... |
 | [paths\full-flow.md](paths/full-flow.md) | Full Flow | Use design/full when new design or important architecture de... |
-| [paths\tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Same 11 HelloDev stages as fast/... |
+| [paths\tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Same 11 HelloDev stages as fast... |
 | [paths\worktree-guide.md](paths/worktree-guide.md) | Worktree Guide - Subtask Branch Management | Use Git Worktree to manage subtask branches, keeping the mai... |
 
 ## Other
@@ -111,4 +111,4 @@
 
 ---
 
-Generated: 2026-10-11 | Covering 43 module files
+Generated: 2026-10-12 | Covering 43 module files

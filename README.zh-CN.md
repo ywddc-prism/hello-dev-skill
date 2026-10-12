@@ -36,8 +36,8 @@ Hello Dev 是一个开发增强系统，解决 AI 辅助开发反复遇到的七
 node scripts/state.js init --name "你的任务名称" --type implementation --path fast
 
 # 2. 按执行路径推进
-# fast: bootstrap -> requirement -> implementation -> testing -> review -> ship
-# full: bootstrap -> requirement -> feature-design -> architecture -> implementation -> testing -> review -> ship
+# fast: bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
+# full: bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
 
 # 3. 修改后运行自检查
 bash scripts/self-check.sh
@@ -96,9 +96,9 @@ node scripts/check-links.js
 
 | 路径 | 阶段 | 使用场景 |
 |------|------|----------|
-| `fast` | bootstrap -> requirement -> implementation -> testing -> review -> ship | 小变更,<50 行,无新依赖 |
+| `fast` | bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | 小变更,<50 行,无新依赖 |
 | `implementation` | 同 fast | 有明确方案的标准任务 |
-| `full` | bootstrap -> requirement -> feature-design -> architecture -> implementation -> testing -> review -> ship | 新设计或重大架构变更 |
+| `full` | bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | 新设计或重大架构变更 |
 
 ## 硬约束
 

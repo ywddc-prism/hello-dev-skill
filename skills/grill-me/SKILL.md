@@ -1,7 +1,7 @@
 ---
 name: grill-me
 description: Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to stress-test a plan, get grilled on their design, or mentions "grill me".
-description_zh: ""
+description_zh: "深度追问式方案审查：逐层拆解设计决策，直到达成共识"
 description_en: "Relentless interview to stress-test your plan, resolving each decision branch one by one"
 version: 1.0.0
 homepage: https://github.com/mattpocock/skills

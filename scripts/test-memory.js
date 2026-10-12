@@ -963,6 +963,14 @@ console.log(' 10c. snapshot command ');
  }
  const m = readMem(r);
  ok(' -> snapshots never exceed 20', m.snapshots.length <= 20, `snapshots.length=${m.snapshots.length}`);
+ // `show` must expose snapshots: check-memory-integration.sh reads d.get('snapshots', []) from show output,
+ // before this the field was missing so the check always reported "No snapshots found" (structural false negative).
+ const showOut = run(r, ['show']);
+ let showData = {};
+ try { showData = JSON.parse(showOut.out); } catch (e) { /* assertion below reports */ }
+ ok(' -> show output carries the snapshots field',
+ Array.isArray(showData.snapshots) && showData.snapshots.length === m.snapshots.length,
+ `show.snapshots=${Array.isArray(showData.snapshots) ? showData.snapshots.length : typeof showData.snapshots}`);
  // An illegal snapshots field must be rejected by read()
  const memPath = path.join(r, '.hello-dev', 'memory.json');
  const memObj = JSON.parse(fs.readFileSync(memPath, 'utf8'));

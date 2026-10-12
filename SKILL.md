@@ -15,10 +15,10 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
+          command: 'node "${HELLODEV_SKILL_DIR:?Set HELLODEV_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
           timeout: 10
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
+          command: 'node "${HELLODEV_SKILL_DIR:?Set HELLODEV_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
           timeout: 10
 ---
 
@@ -69,7 +69,7 @@ It provides structured execution paths (design/full, implementation, fast) with 
 5. **Minimal authorization**: Task confirmation does not mean authorization for commit, push, deployment, file deletion, or installation copy sync. Git changes are confirmed separately based on risk protocol.
 6. **Minimal change**: Maintain project conventions and prefer reversible modifications; do not delete history, refactor unrelated modules, or expand dependencies.
 7. **Stoppable**: Stop immediately when the user terminates; report failures or capability limitations honestly, do not retry infinitely or fabricate success.
-8. **Interception is a stop signal**: When an ops gate returns `deny` or `ask`, pause the operation, report the exact command and the gate's reason, ask the user whether to authorize it, and wait for explicit confirmation. Do not work around an interception by another command, wrapper, rewording, or indirect route. For a state change (`ask`), when the target is production or a stateful service, the authorization request must carry an interruption-risk assessment: the interruption surface, why it will not interrupt or what the interruption is, and the rollback point. Production is declared, not inferred: `opsRegister` requires `--env <prod|staging|dev>` and binds it into `stepDigest`. The gate is a cautious-execution gate, not a prohibition gate. Local system commands (`rm`, `mkfs`, `dd`, `shutdown`, etc.) are not ops commands and are not managed by this gate. For purely local development projects, set `DEVLOOP_OPSGATE_SKIP_DIRS=<project-dir-name>` to bypass the gate entirely. See [ops-execution.md](modules/core/approval/ops-execution.md).
+8. **Interception is a stop signal**: When an ops gate returns `deny` or `ask`, pause the operation, report the exact command and the gate's reason, ask the user whether to authorize it, and wait for explicit confirmation. Do not work around an interception by another command, wrapper, rewording, or indirect route. For a state change (`ask`), when the target is production or a stateful service, the authorization request must carry an interruption-risk assessment: the interruption surface, why it will not interrupt or what the interruption is, and the rollback point. Production is declared, not inferred: `opsRegister` requires `--env <prod|staging|dev>` and binds it into `stepDigest`. The gate is a cautious-execution gate, not a prohibition gate. Local system commands (`rm`, `mkfs`, `dd`, `shutdown`, etc.) are not ops commands and are not managed by this gate. For purely local development projects, set `HELLODEV_OPSGATE_SKIP_DIRS=<project-dir-name>` to bypass the gate entirely. See [ops-execution.md](modules/core/approval/ops-execution.md).
 
 ## Startup and On-demand Loading
 
@@ -215,6 +215,6 @@ node scripts/memory.js add --layer L2 --content "..." --source <real evidence>  
 
 After modifications, run `bash scripts/self-check.sh`: syntax, links, index, risk classification, and state behavior tests. It verifies limited invariants but does not prove that platform hooks are registered or that all safety scenarios are protected.
 
-Version optimization basis is in [OPTIMIZATION-REPORT.md](archive/OPTIMIZATION-REPORT.md). Installation copy sync requires separate confirmation; only dry-run by default.
+Version optimization basis is in `OPTIMIZATION-REPORT.md` (archived; not part of this distribution). Installation copy sync requires separate confirmation; only dry-run by default.
 
 Host integration is conditional: select the real host/settings/skill paths with `scripts/register-hooks.js` before registration. Its default is read-only; writes require `--apply` plus separate authorization. WorkBuddy Desktop defaults to `~/.workbuddy/settings.json`. CodeBuddy CLI injected (default) skills do **not** register frontmatter hooks; fork-context hooks additionally require explicit host trust. This entry intentionally does not switch to fork or enable trust. The frontmatter's single resolver command carries no host home path and is not evidence of host support or active loading. Configuration inspection, direct probes and marked-version traces do not prove real host consumption of ask/deny. See [runtime boundaries](references/runtime-adapters.md).

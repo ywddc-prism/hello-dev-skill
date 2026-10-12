@@ -4,11 +4,11 @@
 /**
  * Automatically search and install required skills
  *
- * **Tier 1 cross-host adaptation (2026-10-11)**: `analyze` and `usage-report` now work on both
- * Claude Code and WorkBuddy. When CLI is unavailable, falls back to directory scanning (WorkBuddy
- * constructs equivalent data from marketplace directory and installed_plugins.json).
- * `install` / `uninstall` actions still depend on `claude plugin install` CLI, which is not
- * available on WorkBuddy -- WorkBuddy users should use the host-provided tool
+ * **Tier 1 cross-host adaptation (2026-10-11)**: `analyze` and `usage-report` work on both
+ * Claude Code and WorkBuddy. When the CLI is unavailable they fall back to directory scanning
+ * (WorkBuddy constructs equivalent data from the marketplace directory and
+ * installed_plugins.json). `install` / `uninstall` still depend on the `claude plugin install`
+ * CLI, which does not exist on WorkBuddy -- WorkBuddy users should use the host-provided tool
  * `search_and_install_skills` instead. See `modules/stages/bootstrap.md` §9 for this division.
  *
  * Design decisions (confirmed by user 2026-10-03):
@@ -363,7 +363,12 @@ function getAvailablePlugins() {
    const host = detectHost();
    if (host === 'workbuddy' || host === 'dual') {
      console.log('Claude CLI unavailable; falling back to marketplace directory scan (host=' + host + ')');
-     return getAvailablePluginsFromDisk();
+     const plugins = getAvailablePluginsFromDisk();
+     // P3-1 parity: the cache must be refreshed by whatever source produced the list. Saving
+     // it only on the CLI path left the feature dead on WorkBuddy -- the primary host -- so
+     // `analyze` there never wrote plugin-cache.json at all.
+     savePluginCache(plugins);
+     return plugins;
    }
    console.error('Failed to get available plugins:', error.message);
    // P3-1: Fallback to cached plugins when CLI fails

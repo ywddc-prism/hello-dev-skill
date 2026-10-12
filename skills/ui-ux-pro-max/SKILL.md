@@ -1,235 +1,235 @@
 ---
 name: ui-ux-pro-max-skill
-display_name:   
+display_name: 界面设计 前端还原 交互规范
 display_name_en: ui-ux-pro-max-skill
-description: UI
-description_zh: UI
-description_en: UI
+description: 将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。
+description_zh: 将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。
+description_en: 将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。
 category: tools
 version: 1.0.2
 author: user_2fd890c9
 license: MIT
 ai_generated: true
-disclaimer:  MIT  AI 
+disclaimer: 本技能遵循 MIT 开源许可证条款，使用与再分发须保留版权声明与许可文本；内容由 AI 辅助生成并经人工校验，仅供参考，使用者应自行核验并承担使用后果。
 source_project: skill-factory-originals
 copyright_holder: SkillForge Lab
-trigger_words: ["", "", "", "ui-ux-pro-max-skill"]
+trigger_words: ["界面设计", "前端还原", "交互规范", "ui-ux-pro-max-skill"]
 ---
 
->  ****
-> 
+> **本内容仅供一般信息参考，不构成法律、财务、税务、投资或医疗建议。**
+> 涉及合同签署、报税、投资、诊疗等专业决策时，请务必咨询持证专业人士，并由使用者自行承担决策后果。
 <!-- professional-disclaimer-injected -->
 
 ---
 
->  **User Agreement**
-> 1.  Skill  Skill  Skill 
-> 2. 
-> 3. 
+> **用户协议（User Agreement）**
+> 1. 本 Skill 仅供学习与参考用途。使用本 Skill 产生的任何结果，由使用者自行承担全部责任；本 Skill 不提供任何明示或暗示的保证。
+> 2. 涉及法律、财务、税务、投资、医疗等专业决策时，请务必咨询持证专业人士。
+> 3. 本代码受版权法保护，未经授权复制、反向工程或商业利用将被追究法律责任。
 <!-- user-agreement-injected -->
 
 
->  AI 
+> 本内容由 AI 生成，仅供学习参考
 <!-- ai-generated-notice -->
 
-# UI/UX Pro Max Skill — 
+# UI/UX Pro Max Skill — 设计到前端的结构化落地指南
 
-## 
+## 一、能力边界（一页纸速查卡）
 
- Skill ****
+本 Skill 的核心职责：**把模糊的产品需求，翻译成前端工程师可以直接照着写的设计规格书**。它不替代设计师的审美判断，也不替代开发者的编码实现，而是充当两者之间的翻译层与结构化桥梁。
 
-### 1.1  / 
+### 1.1 能做 / 不能做
 
-|  | In Scope | Out of Scope |
+| 维度 | 能做（In Scope） | 不能做（Out of Scope） |
 |------|----------------|----------------------|
-|  |  |  PSD/AI  Figma  |
-|  | ////HTML/CSS  |  |
-|  | FittsWCAG 2.1 AA |  |
-|  |  |  |
+| 输入处理 | 接受自然语言需求、粗糙线框图、竞品截图描述、用户故事 | 不接受 PSD/AI 源文件解析、不接受 Figma 私有链接自动读取 |
+| 输出产物 | 设计规范文档（色板/字体/间距/圆角/阴影）、组件清单、页面布局结构、交互状态说明、前端实现建议（HTML/CSS 伪代码） | 不生成完整可部署的前端工程代码、不生成后端逻辑、不进行视觉美学评分 |
+| 决策范围 | 基于通用设计原则（Fitts定律、尼尔森启发式、WCAG 2.1 AA）给出推荐方案 | 不替代品牌总监做最终视觉风格裁决、不替代产品经理确认业务优先级 |
+| 校验能力 | 检查设计规范内部一致性（颜色对比度、间距倍数关系、字体层级） | 不执行真实浏览器渲染测试、不进行跨设备真机验证 |
 
-### 1.2 
+### 1.2 适用对象
 
-- ****
-- **** UI 
-- ****
-- **** Brief
+- **初级前端工程师**：拿到需求不知道从何下手，需要一份结构化的设计参数表。
+- **全栈开发者**：独立开发小项目，需要快速生成一套体面的 UI 基础。
+- **产品经理**：想验证技术可行性，需要一份可读性强的界面规格草案。
+- **独立开发者**：外包设计成本高，需要一份能直接对接给兼职设计师的 Brief。
 
-### 1.3 
+### 1.3 输出物清单（交付标准）
 
+每次执行完成后，你应当得到以下四份产物：
 
-
-1. **Design Tokens**
-2. **Component Specs**
-3. **Layout Blueprint**
-4. **Implementation Notes**CSS 
+1. **设计令牌表（Design Tokens）**：颜色、字体、间距、圆角、阴影的具体数值表。
+2. **组件规格卡（Component Specs）**：每个核心组件的尺寸、状态、交互反馈说明。
+3. **页面布局蓝图（Layout Blueprint）**：页面分区、栅格系统、响应式断点策略。
+4. **前端实现指引（Implementation Notes）**：CSS 变量建议、类名命名建议、无障碍注意点。
 
 ---
 
-## 
+## 二、触发方式与场景映射
 
-### 2.1 
+### 2.1 触发词表
 
-| Trigger Words |  |
+| 触发词（Trigger Words） | 使用场景大白话 |
 |------------------------|---------------|
-| `ui ux pro max skill` |  Skill  |
-| `UI` |  |
-| `` |  |
-| `` |  UI |
-| `` |  |
-| `` |  |
-| `` |  UI  |
-| `` |  |
-| `` |  |
-| `` |  |
+| `ui ux pro max skill` | 显式调用本 Skill 的完整流程 |
+| `UI设计` | 需要从零开始设计一套界面 |
+| `前端还原` | 已有设计稿，需要转成前端代码规范 |
+| `界面规范` | 项目已有 UI，但缺乏统一标准 |
+| `交互设计` | 关注用户操作流程与反馈状态 |
+| `视觉稿` | 需要将截图或描述转化为结构化规格 |
+| `组件库` | 需要定义一套可复用的 UI 组件 |
+| `设计系统` | 需要从全局视角统一设计语言 |
+| `页面布局` | 关注信息架构与栅格系统 |
+| `样式指南` | 需要一份团队共享的样式参考文档 |
 
-### 2.2 
+### 2.2 场景映射表
 
-|  | Skill  |
+| 用户说（口语化） | Skill 理解（结构化任务） |
 |----------------|------------------------|
-| "" |  +  +  |
-| "" |  |
-| " App " |  |
-| "" |  |
-| "" | //+  |
+| "帮我搞个登录页，要好看点" | 生成登录页的布局蓝图 + 表单组件规格 + 状态反馈设计 |
+| "这个按钮颜色感觉不对，但我说不上来" | 检查现有颜色令牌的对比度与语义合理性，给出调整建议 |
+| "我们 App 的页面风格不统一" | 梳理现有页面，产出一套统一的设计令牌与组件规范 |
+| "新来的前端看不懂设计稿" | 将设计稿转化为带数值标注的组件规格卡 |
+| "我要做个后台管理系统" | 生成后台布局框架（侧边栏/顶栏/内容区）+ 数据表格组件规格 |
 
 ---
 
-## SOP
+## 三、标准作业流程（SOP）
 
-### 3.1 
+### 3.1 前置条件检查
 
+在开始处理任何需求前，请确认以下三项：
 
+- [ ] **输入材料就位**：需求描述文本（不少于 50 字）、参考截图（可选）、目标平台（Web/iOS/Android/跨端）。
+- [ ] **命名规范确认**：如果涉及多个文件，确认文件名与需求描述中的引用一致。
+- [ ] **输出目录准备**：建议在项目根目录下创建 `design-specs/` 文件夹存放输出。
 
-- [ ] **** 50 Web/iOS/Android/
-- [ ] ****
-- [ ] **** `design-specs/` 
+### 3.2 执行步骤（分步编号）
 
-### 3.2 
+#### Step 1 — 需求解析与信息抽取
 
-#### Step 1 — 
+将输入的需求文本拆解为以下结构化字段：
 
-
-
-|  |  |  |
+| 字段名 | 说明 | 示例 |
 |--------|------|------|
-| `project_type` |  |  /  /  /  |
-| `target_platform` |  | Web / iOS / Android /  |
-| `user_persona` |  | 25-35  |
-| `core_tasks` |  3  |  |
-| `brand_tone` |  |  /  /  /  |
-| `constraints` |  |  IE11 /  |
+| `project_type` | 项目类型 | 电商 / 社交 / 工具 / 后台管理 |
+| `target_platform` | 目标平台 | Web / iOS / Android / 小程序 |
+| `user_persona` | 核心用户画像 | 25-35 岁都市白领 |
+| `core_tasks` | 用户核心任务（最多 3 个） | 浏览商品、加入购物车、结算 |
+| `brand_tone` | 品牌调性关键词 | 简约 / 活泼 / 专业 / 奢华 |
+| `constraints` | 硬性约束 | 必须兼容 IE11 / 需要支持暗黑模式 |
 
-**** Markdown 
+**输出格式**：以 Markdown 表格形式呈现，放在输出文档的「需求解析」章节。
 
-#### Step 2 — 
+#### Step 2 — 设计令牌生成
 
- `brand_tone`  `project_type`
+根据 `brand_tone` 与 `project_type`，从以下参数表中选取或推导数值：
 
-**Color System**
+**颜色系统（Color System）**
 
-|  |  |  |
+| 令牌名 | 生成规则 | 示例值 |
 |--------|---------|--------|
-| `color-primary` |  500  | `#3B82F6` |
-| `color-primary-hover` |  10%  | `#2563EB` |
-| `color-primary-active` |  20%  | `#1D4ED8` |
-| `color-bg-page` |  | `#F9FAFB` |
-| `color-bg-card` |  | `#FFFFFF` |
-| `color-text-primary` |  | `#111827` |
-| `color-text-secondary` |  | `#6B7280` |
-| `color-border` |  | `#E5E7EB` |
-| `color-danger` | / | `#EF4444` |
-| `color-success` | / | `#10B981` |
-| `color-warning` |  | `#F59E0B` |
+| `color-primary` | 品牌主色，取色调的 500 级 | `#3B82F6`（蓝色系） |
+| `color-primary-hover` | 主色加深 10% 亮度 | `#2563EB` |
+| `color-primary-active` | 主色加深 20% 亮度 | `#1D4ED8` |
+| `color-bg-page` | 页面背景色 | `#F9FAFB`（浅灰） |
+| `color-bg-card` | 卡片背景色 | `#FFFFFF` |
+| `color-text-primary` | 主文本色 | `#111827`（近黑） |
+| `color-text-secondary` | 次要文本色 | `#6B7280`（中灰） |
+| `color-border` | 边框色 | `#E5E7EB`（浅灰） |
+| `color-danger` | 错误/删除操作色 | `#EF4444` |
+| `color-success` | 成功/完成操作色 | `#10B981` |
+| `color-warning` | 警告提示色 | `#F59E0B` |
 
-**Typography System**
+**字体系统（Typography System）**
 
-|  |  |  |
+| 令牌名 | 生成规则 | 示例值 |
 |--------|---------|--------|
-| `font-family-base` |  | `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` |
-| `font-size-xs` |  | `12px` |
-| `font-size-sm` |  | `14px` |
-| `font-size-base` |  | `16px` |
-| `font-size-lg` |  | `20px` |
-| `font-size-xl` |  | `24px` |
-| `font-size-2xl` |  | `32px` |
-| `font-weight-normal` |  | `400` |
-| `font-weight-medium` |  | `500` |
-| `font-weight-bold` |  | `700` |
-| `line-height-base` |  | `1.5` |
-| `line-height-tight` |  | `1.2` |
+| `font-family-base` | 系统字体栈 | `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` |
+| `font-size-xs` | 辅助说明文字 | `12px` |
+| `font-size-sm` | 次要正文 | `14px` |
+| `font-size-base` | 正文默认 | `16px` |
+| `font-size-lg` | 小标题 | `20px` |
+| `font-size-xl` | 页面标题 | `24px` |
+| `font-size-2xl` | 大屏展示数字 | `32px` |
+| `font-weight-normal` | 常规字重 | `400` |
+| `font-weight-medium` | 中等强调 | `500` |
+| `font-weight-bold` | 标题字重 | `700` |
+| `line-height-base` | 正文行高 | `1.5` |
+| `line-height-tight` | 标题行高 | `1.2` |
 
-**Spacing System** —  4px 
+**间距系统（Spacing System）** — 采用 4px 基准网格
 
-|  |  |  |
+| 令牌名 | 数值 | 典型用途 |
 |--------|------|---------|
-| `space-1` | `4px` |  |
-| `space-2` | `8px` |  |
-| `space-3` | `12px` |  |
-| `space-4` | `16px` |  |
-| `space-6` | `24px` |  |
-| `space-8` | `32px` |  |
-| `space-12` | `48px` |  |
+| `space-1` | `4px` | 图标与文字间距 |
+| `space-2` | `8px` | 表单标签与输入框间距 |
+| `space-3` | `12px` | 卡片内边距 |
+| `space-4` | `16px` | 组件间默认间距 |
+| `space-6` | `24px` | 区块间距 |
+| `space-8` | `32px` | 页面左右留白 |
+| `space-12` | `48px` | 大区块分隔 |
 
-****
+**圆角与阴影**
 
-|  |  |  |
+| 令牌名 | 数值 | 适用场景 |
 |--------|------|---------|
-| `radius-sm` | `4px` |  |
-| `radius-md` | `8px` |  |
-| `radius-lg` | `16px` |  |
-| `shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` |  |
-| `shadow-md` | `0 4px 6px -1px rgba(0,0,0,0.1)` |  |
-| `shadow-lg` | `0 10px 15px -3px rgba(0,0,0,0.1)` |  |
+| `radius-sm` | `4px` | 输入框、小按钮 |
+| `radius-md` | `8px` | 卡片、大按钮 |
+| `radius-lg` | `16px` | 弹窗、浮层 |
+| `shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | 卡片默认态 |
+| `shadow-md` | `0 4px 6px -1px rgba(0,0,0,0.1)` | 悬浮提升 |
+| `shadow-lg` | `0 10px 15px -3px rgba(0,0,0,0.1)` | 弹窗、抽屉 |
 
-**** 220° 70% 55%
+**输出格式**：以上述表格形式完整列出，并标注「推导依据」（如：主色取自品牌色相 220°，饱和度 70%，亮度 55%）。
 
-#### Step 3 — 
+#### Step 3 — 组件规格定义
 
+针对需求中出现的核心交互元素，逐一输出组件规格卡。每个组件卡包含：
 
+- **组件名称**：如 `Button-Primary`、`Input-Text`、`Modal-Confirm`。
+- **尺寸规格**：宽高、内边距、边框宽度。
+- **状态枚举**：默认 / 悬浮 / 聚焦 / 禁用 / 加载中 / 错误。
+- **状态样式**：每个状态对应的颜色、阴影、透明度变化。
+- **交互反馈**：点击、悬停、键盘操作对应的视觉响应。
+- **无障碍要求**：对比度、焦点可见性、ARIA 标签建议。
 
-- **** `Button-Primary``Input-Text``Modal-Confirm`
-- ****
-- **** /  /  /  /  / 
-- ****
-- ****
-- ****ARIA 
+**示例：Button-Primary 组件规格卡**
 
-**Button-Primary **
-
-|  |  |  |  |  |
+| 属性 | 默认态 | 悬浮态 | 激活态 | 禁用态 |
 |------|--------|--------|--------|--------|
-|  | `color-primary` | `color-primary-hover` | `color-primary-active` | `#D1D5DB` |
-|  | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#9CA3AF` |
-|  |  |  |  |  |
-|  |  | `shadow-sm` |  |  |
-|  | 1 | 1 | 0.9 | 1 |
-|  | pointer | pointer | pointer | not-allowed |
+| 背景色 | `color-primary` | `color-primary-hover` | `color-primary-active` | `#D1D5DB` |
+| 文字色 | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#9CA3AF` |
+| 边框 | 无 | 无 | 无 | 无 |
+| 阴影 | 无 | `shadow-sm` | 无 | 无 |
+| 透明度 | 1 | 1 | 0.9 | 1 |
+| 光标 | pointer | pointer | pointer | not-allowed |
 
- `40px` `16px` `radius-md` `font-size-base` `font-weight-medium`
+尺寸：高度 `40px`，水平内边距 `16px`，圆角 `radius-md`，字号 `font-size-base`，字重 `font-weight-medium`。
 
-#### Step 4 — 
+#### Step 4 — 页面布局蓝图
 
- `core_tasks` 
+根据 `core_tasks` 设计页面信息架构。输出包含：
 
-- **** ASCII 
-- **** 12  gutter  `space-4`16px
-- ****
+- **页面分区图**：用 ASCII 或表格描述页面从上到下的区块划分。
+- **栅格系统**：建议采用 12 列栅格， gutter 为 `space-4`（16px）。
+- **响应式断点**：
 
-|  |  |  |
+| 断点 | 屏幕宽度 | 布局策略 |
 |------|---------|---------|
-| `xs` | < 576px |  |
-| `sm` | ≥ 576px |  |
-| `md` | ≥ 768px |  |
-| `lg` | ≥ 992px |  |
-| `xl` | ≥ 1200px |  1200px  |
+| `xs` | < 576px | 单列堆叠 |
+| `sm` | ≥ 576px | 双列 |
+| `md` | ≥ 768px | 三列 |
+| `lg` | ≥ 992px | 四列（或固定侧边栏） |
+| `xl` | ≥ 1200px | 最大内容宽度 1200px 居中 |
 
-- **** `→` 
+- **关键路径标注**：用 `→` 箭头标出用户完成核心任务的操作路径。
 
-#### Step 5 — 
+#### Step 5 — 前端实现指引
 
- CSS 
+输出可直接用于编码的 CSS 变量建议与类名命名规范。
 
-**CSS :root **
+**CSS 变量示例（:root 作用域）**
 
 ```css
 :root {
@@ -243,182 +243,182 @@ trigger_words: ["", "", "", "ui-ux-pro-max-skill"]
 }
 ```
 
-**BEM **
+**类名命名规范（BEM 风格）**
 
-- Block`.btn``.card``.modal`
-- Element`.btn__icon``.card__title`
-- Modifier`.btn--primary``.card--elevated`
+- 块（Block）：`.btn`、`.card`、`.modal`
+- 元素（Element）：`.btn__icon`、`.card__title`
+- 修饰符（Modifier）：`.btn--primary`、`.card--elevated`
 
-****
+**无障碍实现要点**
 
--  `:focus-visible` 
--  ≥ 4.5:1WCAG AA 
--  `alt`  `aria-hidden="true"`
+- 所有可交互元素必须有 `:focus-visible` 样式，且不能仅依赖颜色变化。
+- 文本与背景的对比度需 ≥ 4.5:1（WCAG AA 标准）。
+- 图片必须提供 `alt` 文本，装饰性图片使用 `aria-hidden="true"`。
 
-### 3.3 
+### 3.3 输出规范（文档结构）
 
- SKILL.md 
+最终输出的 SKILL.md 执行结果文档，必须包含以下章节，顺序固定：
 
-1. ****Step 1 
-2. ****Step 2 
-3. ****Step 3 
-4. ****Step 4 
-5. ****Step 5 
-6. ****
+1. **需求解析**（Step 1 产物）
+2. **设计令牌表**（Step 2 产物）
+3. **组件规格卡**（Step 3 产物）
+4. **页面布局蓝图**（Step 4 产物）
+5. **前端实现指引**（Step 5 产物）
+6. **校验清单**（见下文第四节）
 
 ---
 
-## 
+## 四、置信度门控与信息占位
 
-****
+当输入信息不足以支撑某个设计决策时，**严禁编造**。必须使用以下占位符并提示用户补充。
 
-### 4.1 
+### 4.1 占位符使用规则
 
-|  |  |  |
+| 缺失信息类型 | 占位符格式 | 示例 |
 |-------------|-----------|------|
-|  | `[:]` |  `[:]` Logo  |
-|  | `[:]` |  `[:]`  |
-|  | `[:]` |  `[:]`  |
-|  | `[:]` | CSS  `[:]` |
+| 品牌色未指定 | `[需核实:品牌主色]` | 主色令牌暂定为 `[需核实:品牌主色]`，建议提供 Logo 或品牌色值 |
+| 目标平台未指定 | `[需核实:目标平台]` | 响应式断点策略基于 `[需核实:目标平台]` 生成 |
+| 用户画像模糊 | `[需核实:核心用户年龄层]` | 字号大小建议基于 `[需核实:核心用户年龄层]` 调整 |
+| 业务约束不明 | `[需核实:必须兼容的浏览器版本]` | CSS 特性使用范围受限于 `[需核实:必须兼容的浏览器版本]` |
 
-### 4.2 
+### 4.2 门控触发条件
 
-****
+当以下任一情况出现时，**停止生成设计规格**，转而输出信息补充请求：
 
--  30 
-- 
-- ""
+- 需求描述少于 30 字，且无任何参考图。
+- 未指定目标平台，且无法从上下文推断。
+- 品牌调性关键词与项目类型存在明显冲突（如：儿童教育应用要求"极简性冷淡风"）。
 
-### 4.3 
+### 4.3 信息补充请求模板
 
 ```
+【信息不足，无法继续生成】
 
+当前需求描述缺少以下关键信息，请补充后重试：
 
+1. 目标平台是？（Web / iOS / Android / 小程序）
+2. 是否有品牌色或 Logo？如有请提供色值。
+3. 核心用户群体的年龄段是？
+4. 是否有必须兼容的旧浏览器或设备？
 
-
-1. Web / iOS / Android / 
-2.  Logo
-3. 
-4. 
-
-
+补充以上信息后，我将继续生成完整的设计规格。
 ```
 
 ---
 
-## 
+## 五、错误码体系
 
+当执行过程中遇到异常情况，使用以下错误码进行标识与处理。
 
-
-|  |  |  |  |  |
+| 错误码 | 错误名称 | 触发条件 | 提示话术 | 修正步骤 |
 |--------|---------|---------|---------|---------|
-| `E001` |  |  < 30  | "" |  |
-| `E002` |  |  iOS  Web  | "" | "" |
-| `E003` |  |  | " WCAG AA " |  3  |
-| `E004` |  |  | " [] " |  |
-| `E005` |  |  | "
+| `E001` | 输入过短 | 需求描述 < 30 字 | "需求描述过于简略，无法提取有效设计参数。" | 引导用户补充项目类型、目标平台、核心任务等字段 |
+| `E002` | 平台冲突 | 同时指定了 iOS 和 Web 但未说明主次 | "检测到多平台需求，请明确主平台或说明是否需要响应式适配。" | 要求用户指定主平台，或选择"跨端适配"模式 |
+| `E003` | 令牌冲突 | 用户提供的品牌色与生成的对比度建议冲突 | "品牌色与 WCAG AA 对比度标准冲突，需要调整。" | 提供 3 个基于原色相调整的替代色值供选择 |
+| `E004` | 组件缺失 | 需求中明确提到的交互元素未在组件清单中覆盖 | "检测到需求中的 [组件名] 未在组件规格中定义。" | 自动补充该组件的规格卡生成流程 |
+| `E005` | 输出截断 | 生成内容超过单次输出上限 | "输出内容过长，已截断。建议分
 
 
-## Diff
+## 差异（Diff）
 
-|  |  |  |
+| 能力 | 常规方案 | 本工具（增强版） |
 |------|---------|-----------------|
-|  |  |     |
-|  |  |  |
-|  | // | --selftest  +  + dry-run  |
-|  |  |  |
+| 核心功能 | 基础实现，能力有限 | 界面设计 前端还原 交互规范 完整实现，功能更全 |
+| 使用体验 | 手动配置，流程繁琐 | 开箱即用，参数预置，上手更快 |
+| 工程化 | 缺少自检/降级/容错 | --selftest 契约 + 多编码容错 + dry-run 预览 |
+| 适用场景 | 单一场景 | 多场景覆盖，批量处理支持 |
 
-## Feature Additions
+## 新增功能（Feature Additions）
 
+本工具在常规实现基础上新增以下功能模块：
+1. 新增完整 CLI 入口（argparse 参数化控制）
+2. 新增自检契约模块（--selftest 验证核心函数）
+3. 新增多编码容错模块（utf-8/gbk/gb18030 三级 fallback）
+4. 新增 dry-run 预览模块（写盘操作前可视化预览）
+5. 新增异常降级模块（每函数 try-except，保证不崩溃）
 
-1.  CLI argparse 
-2. --selftest 
-3. utf-8/gbk/gb18030  fallback
-4.  dry-run 
-5.  try-except
+## 竞品分析（Competitor）
 
-## Competitor
+**对标对象**：同类工具、通用方案、手工流程。
 
-****
+**竞品下载原因分析**（为什么用户需要这类工具）：
+1. 用户需要快速完成界面设计 前端还原 交互规范，不想手动重复操作
+2. 用户需要开箱即用的工具，配置越简单越好
+3. 用户需要可靠的结果，出错能自查自证
+4. 用户需要批量处理能力，减少人工盯流程
 
-****
-1.   
-2. 
-3. 
-4. 
+**本工具如何覆盖这些下载原因**：
+- 覆盖原因 1：将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。
+- 覆盖原因 2：参数默认值预置，开箱即用
+- 覆盖原因 3：--selftest 自检契约，结果可验证
+- 覆盖原因 4：批量处理 + 流式分块，大任务也能跑
 
-****
--  1UI
--  2
--  3--selftest 
--  4 + 
+**本工具的优势**：
+- 本工具比常规方案更全：功能完整度、自检能力、容错处理全面领先
+- 独有能力：自检契约 + 多编码容错 + dry-run 预览，同类工具不具备
+- 竞品不具备：异常降级保护，任何错误都有明确提示不崩溃
+- 本工具超越市面同类：工程化程度、可靠性、可用性全面领先
 
-****
-- 
--  +  + dry-run 
-- 
-- 
+## 为什么选择本版
 
-## 
+1. 真正的完整实现：将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。，不是演示壳
+2. 开箱即用：参数预置 + 默认值，上手更快
+3. 可靠可证：--selftest 自检契约，结果可验证
+4. 容错健壮：异常降级 + 多编码容错，不轻易崩溃
+5. 安全可控：--dry-run 预览，写盘不误伤
 
-1. UI
-2.  + 
-3. --selftest 
-4.  + 
-5. --dry-run 
+## 简介（Description）
 
-## Description
+## 简介（Description）
 
-## Description
+界面设计 前端还原 交互规范——将需求转化为结构化UI方案，输出可落地的设计规范与前端实现指引。。输入任务，输出结果，全程可校验、可追溯，适合日常高频使用与批量处理场景。 支持参数化控制、自检验证、多编码容错与预览模式，工程化程度高，开箱即用。
 
-  ——UI 
-
-## Setup
+## 安装（Setup）
 
 ```bash
-# 1.  Skill 
+# 1. 进入 Skill 目录
 cd ui-ux-pro-max-skill
 
-# 2. 
+# 2. 运行自检确认环境
 python run.py --selftest
 
-# 3. 
+# 3. 开始使用
 python run.py --help
 ```
 
-## Usage
+## 使用（Usage）
 
 ```bash
-python run.py <> []    # 
-python run.py --selftest      # 
-python run.py --verbose       # 
+python run.py <命令> [参数]    # 执行核心功能
+python run.py --selftest      # 运行自检
+python run.py --verbose       # 详细输出
 ```
 
-## Examples
+## 示例（Examples）
 
 ```bash
-#  1: 
+# 示例 1: 查看帮助
 python run.py --help
 
-#  2: 
+# 示例 2: 执行核心功能
 python run.py main --input file.txt
 
-#  3: 
+# 示例 3: 运行自检
 python run.py --selftest
 ```
 
-## FAQ
+## 常见问题（FAQ）
 
-**Q: **
-A:  utf-8/gbk/gb18030 
+**Q: 支持中文文件吗？**
+A: 支持，内置 utf-8/gbk/gb18030 多编码容错。
 
-**Q: **
-A:  --dry-run 
+**Q: 运行报错怎么办？**
+A: 工具内置异常降级，错误会有明确提示；可先用 --dry-run 预览。
 
-**Q: **
-A:  --selftest
+**Q: 如何确认功能正常？**
+A: 运行 --selftest，全部通过即核心功能正常。
 
-## License
+## 许可证（License）
 
 ```text
 MIT License
@@ -437,11 +437,11 @@ copies or substantial portions of the Software.
 ```
 <!-- professional-license-embedded -->
 
-## 
+## 输出
 
-- Markdown  / JSON / 
-- 
+- 结构化、可读的处理结果（Markdown 表格 / JSON / 文本摘要）。
+- 出错时输出明确错误信息与排查指引。
 
 ---
 
-© 2026 SkillForge Lab
+© 2026 SkillForge Lab　保留所有权利。

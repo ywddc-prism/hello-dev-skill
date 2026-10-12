@@ -8,6 +8,10 @@
 # 4. --force deletes target directory first, local memory wiped but log says "not overwritten"
 # 5. Rejection paths for non-empty target / symlink target / corrupt settings.json / missing settings.json
 #
+# COVERAGE: only case 1 (pack) is asserted below. The file ends after the pack
+# section, so cases 2-5 are listed above but have no assertions -- a green run
+# here does NOT cover install/restore behaviour. Do not read it as full coverage.
+#
 # Uses isolated HOME and temp directories throughout, never touches real ~/.claude.
 #
 # Run: bash scripts/test-portable.sh
@@ -28,6 +32,10 @@ node --check "$PJ" >/dev/null 2>&1; ck "syntax" 0 $?
 ROOT="$(mktemp -d "${TMPDIR:-/tmp}/hello-dev-portable-test-XXXX")"
 OUT="$ROOT/out"; WORK="$ROOT/work"
 mkdir -p "$OUT" "$WORK" "$ROOT/home/.claude/skills"
+# Relocate home before pack runs. HELLODEV_HOME is the documented isolation hook
+# (scripts/lib/home.js); HOME alone does not relocate home on win32, so without
+# this the script reads and repacks the developer's real ~/.claude.
+export HELLODEV_HOME="$ROOT/home"
 
 # Minimal settings.json: keys outside non-empty allowlist must be preserved as-is
 cat > "$ROOT/home/.claude/settings.json" <<'EOF'
@@ -48,3 +56,23 @@ TAR="$(ls "$OUT"/*.tar.gz 2>/dev/null | head -1)"
 # Package must not contain credentials, state, or itself
 node "$PJ" inspect "$TAR" >/dev/null 2>&1; ck "inspect -> 0" 0 $?
 CONTENT="$(tar -tzf "$TAR")"
+if printf '%s\n' "$CONTENT" | grep -qE 'MY_TOKEN|secret-server|super-secret'; then
+  no "package leaks credentials from host settings"
+else
+  ok "package leaks no credentials from host settings"
+fi
+if printf '%s\n' "$CONTENT" | grep -q '\.tar\.gz'; then
+  no "package contains an archive of itself"
+else
+  ok "package does not contain itself"
+fi
+
+rm -rf "$ROOT"
+
+echo
+if [ "$fail" -eq 0 ]; then
+  echo "portable regression test passed ($pass assertions)"
+  exit 0
+fi
+echo "portable regression test FAILED ($fail failed / $pass passed)"
+exit 1

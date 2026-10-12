@@ -27,25 +27,31 @@ const MANDATORY_STAGES = ['learn', 'evolution', 'reflection', 'archive'];
 /**
  * Stems, so "learning", "reflections" and "archived" still count.
  * Chinese stage names are included because the Chinese documents (`SKILL.zh-CN.md`) are a
- * delivered surface and previously matched no stem at all.
+ * delivered surface and previously matched no stem at all -- the Chinese variants of the defect
+ * were silently invisible to an English-only detector.
  * Chosen so that no OTHER stage name collides: `archiv` does not match `Architecture`
- * (which is `archit`), so an optionality mention about architecture or technology
- * selection cannot be mistaken for a claim about Archive.
+ * (which is `archit`), and 归档 does not match 架构, so an optionality mention about
+ * architecture or technology selection cannot be mistaken for a claim about Archive.
  */
-const STAGE_STEM = /(?:learn|evolution|reflect|archiv)/i;
+const STAGE_STEM = /(?:learn|evolution|reflect|archiv|学习|反思|进化|归档)/i;
 
 const OPTIONAL_MARKERS = [
   /\boptional\b/i,
   /\bnot a delivery threshold\b/i,
   /\bdo not block delivery\b/i,
   /\bexpanded only when\b/i,
+  /仅(?:在|当).{0,20}需要时/,
+  /可选/,
 ];
 
 /**
  * Remove negated forms before matching. A sentence that says the stages are "not optional"
  * asserts the OPPOSITE of the defect, and the corrected documents contain exactly that
- * phrasing -- without this step the guard would fire on its own remedy.
+ * phrasing — without this step the guard would fire on its own remedy.
  *
+ * The Chinese negation is `不是可选` / `非可选` / `不…可选`. Only the first two are listed as
+ * whole phrases: a bare `不.{0,4}可选` would also erase a genuinely defective line such as
+ * `学习和反思不是必须的,可选执行`, which is an assertion of optionality, not a negation of it.
  * Narrowing the pattern keeps the detector on the side of firing.
  */
 function stripNegation(line) {
@@ -58,7 +64,10 @@ function stripNegation(line) {
     if (next === out) break;
     out = next;
   }
-  return out;
+  return out
+    .replace(/不是可选/g, '')
+    .replace(/非可选/g, '')
+    .replace(/不属(?:于)?可选/g, '');
 }
 
 /** Lines that both reference a mandatory stage and call it optional. */
@@ -98,6 +107,7 @@ function wrappedChains(lines) {
 /** A document that names the four stages must state they are mandatory, not merely list them. */
 const MANDATORY_CLAIM = [
   /\bmandatory on every (?:execution )?path\b/i,
+  /在全部执行路径上均为强制阶段/,
 ];
 
 module.exports = { MANDATORY_STAGES, STAGE_STEM, optionalClaims, wrappedChains, MANDATORY_CLAIM };

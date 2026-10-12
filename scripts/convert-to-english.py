@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Remove emoji and translate Chinese to English in DevLoop Pro files.
+Remove emoji and translate Chinese to English in Hello Dev files.
 """
 
 import os
@@ -87,7 +87,11 @@ def process_file(filepath):
         return False
 
 def main():
-    root = '/<repo-root>'
+    # Root directory: first CLI argument, or the repository containing this script.
+    if len(sys.argv) > 1:
+        root = sys.argv[1]
+    else:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     # Get all files to process
     files_to_process = []

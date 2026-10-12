@@ -14,7 +14,7 @@
  *   node scripts/state.js stage <name> <pending|in_progress|completed|failed|rolled_back>
  *   node scripts/state.js module <id> <design|submitted|approved|rejected|annotated>
  *   node scripts/state.js reject <id> --reason "Missing error handling"
- *   node scripts/state.js checkpoint <name> <pass|warn|fail>
+ *   node scripts/state.js checkpoint <name> <pass|fail>
  *   node scripts/state.js resume      # session resume entry: print current state and next action
  *   node scripts/state.js validate
  */
@@ -35,6 +35,9 @@ const RETRY = { perModuleMax: 3, totalMax: 10 };
 // Stage order lives once, in scripts/lib/stages.js. A local copy here is how the
 // five restatements drifted apart in the first place.
 const { STAGES, DESIGN_ONLY_STAGES, route } = require('./lib/stages');
+// Imported rather than restated: the mandatory post-delivery stage list has one source of
+// truth, and a literal copy here is how the five restatements drifted apart before.
+const { MANDATORY_STAGES } = require('./lib/mandatory-stages');
 const STAGE_STATUS = ['pending', 'in_progress', 'completed', 'failed', 'rolled_back'];
 const MODULE_STATUS = ['design', 'submitted', 'approved', 'rejected', 'annotated'];
 const SUBTASK_STATUS = ['pending', 'in_progress', 'completed', 'failed'];
@@ -48,6 +51,17 @@ const OPS_STEP_STATUS = ['pending', 'awaiting_approval', 'approved', 'rejected',
  * stage, but it cannot judge whether the reasoning is correct. Content judgment stays
  * with the human, per state-protocol.md's limitation clause. */
 const REQUIRED_REASON_MIN = 40;
+
+/** Lower placeholder floor, used on the `fast` path for the post-delivery retrospective
+ * stages only (MANDATORY_STAGES: learn/evolution/reflection/archive). The argument above
+ * applies unchanged: this is a placeholder/absence detector, not a semantic judge, and 12
+ * still rejects an empty string, `done`, `ok`, `pass` and `n-a`. Those four stages carry no
+ * authorization and no delivery evidence -- they record what was learned after ship -- so
+ * their reason text does not need to clear the same bar as a gate. The authorization gates
+ * (initialization, requirement) and the evidence gates (testing, review) keep 40 on every
+ * path: the framework exists to prevent "tests went green but nothing was verified", and
+ * that risk does not scale down with task size. */
+const LITE_REASON_MIN = 12;
 
 function fail(msg) { throw new Error(msg); }
 function now() { return new Date().toISOString(); }
@@ -357,6 +371,11 @@ function completionAllowed(s, name) {
     learn: 'Learning summary', evolution: 'Evolution report', reflection: 'Agent reflection', archive: 'Archive complete' }[name];
   if (required) {
     const reqs = Array.isArray(required) ? required : [required];
+    // The lower floor applies to the post-delivery retrospective stages on the `fast` path
+    // only. Every other stage -- the authorization gates (initialization, requirement) and
+    // the evidence gates (testing, review) alike -- keeps the full floor on both paths.
+    const litePath = s.task.path === 'fast' && MANDATORY_STAGES.includes(name);
+    const reasonMin = litePath ? LITE_REASON_MIN : REQUIRED_REASON_MIN;
     for (const req of reqs) {
       const cp = latest.get(req);
       if (cp?.result !== 'pass') fail(`Completing ${name} requires current-round checkpoint: ${req} pass`);
@@ -366,10 +385,11 @@ function completionAllowed(s, name) {
       // floor, not a semantic one: it rejects absence and placeholders (done/ok/pass/n-a)
       // and nothing more — judging whether the reasoning is sound stays with the human.
       const reason = typeof cp.reason === 'string' ? cp.reason.trim() : '';
-      if (reason.length < REQUIRED_REASON_MIN) {
+      if (reason.length < reasonMin) {
         fail(`Completing ${name} requires a substantive reason on checkpoint '${req}': got ` +
           `${reason.length} chars${reason ? ` ("${reason}")` : ' (no --reason)'}, ` +
-          `need at least ${REQUIRED_REASON_MIN}. Re-record it with the evidence, e.g. ` +
+          `need at least ${reasonMin} (${litePath ? 'fast path floor' : 'full path floor'}). ` +
+          `Re-record it with the evidence, e.g. ` +
           `node scripts/state.js checkpoint "${req}" pass --reason "<what was verified and how>"`);
       }
     }
@@ -639,7 +659,7 @@ function cmdCheckpoint(args) {
   const root = requireRoot();
   const [name, result] = args.positional;
   text(name, 'checkpoint name');
-  if (!['pass', 'warn', 'fail'].includes(result)) fail('checkpoint requires <name> <pass|warn|fail>');
+  if (!['pass', 'fail'].includes(result)) fail('checkpoint requires <name> <pass|fail>');
   const s = read(root);
   if (s.stage.status !== 'in_progress') fail('Can only record checkpoints for in-progress stages');
   const reason = args.flags.reason === undefined ? null : text(args.flags.reason, '--reason');
@@ -960,7 +980,7 @@ function cmdOpsStatus(args) {
       if (step.status === 'rejected') verdict = { valid: false, reasons: ['user has rejected this step'] };
     }
     const mark = verdict.valid ? '[OK]' : '[FAIL]';
-    console.log(`${mark} ${id.padEnd(24)} ${step.approvalMode.padEnd(15)} ${verdict.reasons.join('')}`);
+    console.log(`${mark} ${id.padEnd(24)} ${step.approvalMode.padEnd(15)} ${verdict.reasons.join('；')}`);
     if (!verdict.valid) blocked++;
   }
   if (blocked) { console.log(`\n[BLOCKED] ${blocked} steps not executable; expired/invalidated steps need re-review.`); process.exitCode = 1; }
@@ -1570,7 +1590,7 @@ if (!cmd || !Object.hasOwn(COMMANDS, cmd)) {
   console.log('  stage <name> <pending|in_progress|completed|failed|rolled_back>');
   console.log('  module <id> <design|submitted|approved|annotated> [--reason "approval basis"]');
   console.log('  reject <id> --reason "..."');
-  console.log('  checkpoint <name> <pass|warn|fail> [--reason "evidence"]');
+  console.log('  checkpoint <name> <pass|fail> [--reason "evidence"]');
   console.log('  retry-resume --reason "user authorization to continue"');
   console.log('  collab [detect|show]   # collaboration: detect skills and snapshot, show reads (default)');
   console.log('  decompose --tasks \'[{"id":"t1","name":"...","depends":[],"affectedFiles":[]}]\' [--replace]   # task decomposition');

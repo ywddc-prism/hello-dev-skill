@@ -21,9 +21,17 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { detectHost } = require('./lib/host.js');
 
 const CLI = path.join(__dirname, 'search-install-skill.js');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hello-dev-plugin-'));
+// `install` / `uninstall` shell out to `claude plugin ...`, which exists only on Claude Code
+// hosts. On every other host the commands emit a [SKIP] guidance line and exit 0 by design
+// (WorkBuddy delegates to the host tool `search_and_install_skills`). Assertions must follow
+// the branch the host actually takes: asserting Claude-only output on a non-Claude host reads
+// as 10+ red defects that cannot be fixed. Both branches are covered because CI is a
+// CLI-less claude host while dev machines are typically workbuddy/dual.
+const CLAUDE_HOST = detectHost() === 'claude';
 let cwd;
 let checks = 0;
 let pass = 0;
@@ -37,7 +45,14 @@ function ok(name, cond, detail) {
 }
 
 function run(...args) {
- const r = spawnSync(process.execPath, [CLI, ...args], { cwd, encoding: 'utf8' });
+ // Optional leading { env } object lets a case pin the host / HOME it exercises, so the
+ // assertion does not depend on whichever host happens to run the suite.
+ const opts = (args[0] && typeof args[0] === 'object') ? args.shift() : {};
+ const r = spawnSync(process.execPath, [CLI, ...args], {
+ cwd,
+ encoding: 'utf8',
+ env: opts.env ? { ...process.env, ...opts.env } : process.env,
+ });
  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
 
@@ -181,7 +196,12 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  // Does not crash when no installation plan exists
  const r2a = run('install');
  ok('does not crash without installation plan', r2a.code === 0, r2a.out.slice(0, 200));
+ if (CLAUDE_HOST) {
  ok(' -> output contains "no installation plan"', /no installation plan/i.test(r2a.out), r2a.out.slice(0, 160));
+ } else {
+ ok(' -> non-Claude host: install is skipped with host-tool guidance',
+ /\[SKIP\] install/.test(r2a.out) && /search_and_install_skills/.test(r2a.out), r2a.out.slice(0, 200));
+ }
 
  // -- 3. Installation results written to state.json --
  console.log('-- 3. Installation results written to state.json --');
@@ -194,7 +214,12 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  });
  const r3 = run('install');
  ok('install command executes successfully', r3.code === 0, r3.out.slice(0, 200));
+ if (CLAUDE_HOST) {
  ok(' -> output contains "no plugins needed"', /no plugins needed/i.test(r3.out), r3.out.slice(0, 160));
+ } else {
+ ok(' -> non-Claude host: install is skipped with host-tool guidance',
+ /\[SKIP\] install/.test(r3.out) && /search_and_install_skills/.test(r3.out), r3.out.slice(0, 200));
+ }
 
  // -- 4. Installation failure records error information --
  console.log('-- 4. Installation failure records error information --');
@@ -211,8 +236,15 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  // Installation fails but command itself should execute successfully
  ok('install command completes execution', r4.code === 0, r4.out.slice(0, 200));
  const state4 = stateJson();
+ if (CLAUDE_HOST) {
  ok(' -> state.json contains pluginInstallationResult', state4.pluginInstallationResult !== undefined,
  JSON.stringify(state4).slice(0, 100));
+ } else {
+ // The skip path returns before touching state.json: no silent half-record may appear.
+ ok(' -> non-Claude host: install refused, state.json left untouched',
+ state4.pluginInstallationResult === undefined && /\[SKIP\] install/.test(r4.out),
+ JSON.stringify(state4).slice(0, 100));
+ }
  if (state4.pluginInstallationResult) {
  const result = state4.pluginInstallationResult;
  ok(' -> contains timestamp', typeof result.timestamp === 'string', result.timestamp);
@@ -294,11 +326,16 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
 
  const r8 = run('uninstall');
  ok('uninstall command executes successfully', r8.code === 0, r8.out.slice(0, 200));
+ if (CLAUDE_HOST) {
  ok(' -> output contains "installed plugins"', /installed plugins/i.test(r8.out), r8.out.slice(0, 160));
  ok(' -> output contains "in use"', /in use/i.test(r8.out), r8.out.slice(0, 160));
  ok(' -> output contains "unused"', /unused/.test(r8.out), r8.out.slice(0, 160));
  ok(' -> identifies plugin-b as unused', /plugin-b/.test(r8.out), r8.out.slice(0, 160));
  ok(' -> hints --execute parameter', /--execute/.test(r8.out), r8.out.slice(0, 160));
+ } else {
+ ok(' -> non-Claude host: uninstall is skipped with host-UI guidance',
+ /\[SKIP\] uninstall/.test(r8.out) && /host UI|search_and_install_skills/.test(r8.out), r8.out.slice(0, 200));
+ }
 
  // -- 9. P1-2: usage-report command --
  console.log('-- 9. P1-2: usage-report command outputs usage report --');
@@ -347,10 +384,15 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  const r10 = run('install');
  // install should detect conflict and prevent installation
  ok('install command completes execution', r10.code === 0, r10.out.slice(0, 200));
+ if (CLAUDE_HOST) {
  ok(' -> output contains "compatibility pre-check"', /compatibility pre-check/.test(r10.out), r10.out.slice(0, 160));
  // Since conflict plugins are not in real plugin cache, checkPluginConflicts returns no conflicts
  // But we can verify the function was called
  ok(' -> calls compatibility pre-check function', /compatibility pre-check/.test(r10.out) || /running compatibility pre-check/.test(r10.out), r10.out.slice(0, 160));
+ } else {
+ ok(' -> non-Claude host: install is skipped with host-tool guidance',
+ /\[SKIP\] install/.test(r10.out) && /search_and_install_skills/.test(r10.out), r10.out.slice(0, 200));
+ }
 
  // -- 11. P2-2: Historical feedback loop --
  console.log('-- 11. P2-2: Historical feedback loop (analyze includes utilization info) --');
@@ -374,8 +416,18 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  // -- 12. P3-1: Offline cache --
  console.log('-- 12. P3-1: Offline cache (plugin-cache.json) --');
  project('offline-cache');
- // analyze command should create cache file
- const r12 = run('analyze');
+ // Pin host and home so this case is deterministic on every machine: a claude host without the
+ // CLI has no plugin source at all and (correctly) writes no cache -- asserting on the ambient
+ // host made this the one case that stayed red on CI. The fixture marketplace proves the
+ // *scanned list* -- not merely the file -- reaches the cache.
+ const cacheHome = path.join(tmp, 'home-offline-cache');
+ const fixtureSkillDir = path.join(cacheHome, '.workbuddy', 'plugins', 'marketplaces',
+ 'fixture-market', 'plugins', 'fixture-plugin', 'skills', 'fixture-skill');
+ fs.mkdirSync(fixtureSkillDir, { recursive: true });
+ fs.writeFileSync(path.join(fixtureSkillDir, 'SKILL.md'),
+ '---\nname: fixture-skill\ndescription: fixture plugin for cache test\n---\n\n# fixture\n', 'utf8');
+
+ const r12 = run({ env: { HELLODEV_HOME: cacheHome, HELLODEV_HOST: 'workbuddy' } }, 'analyze');
  ok('analyze command executes successfully', r12.code === 0, r12.out.slice(0, 200));
  const cachePath = path.join(cwd, '.hello-dev', 'plugin-cache.json');
  ok(' -> creates plugin-cache.json', fs.existsSync(cachePath), cachePath);
@@ -383,6 +435,9 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
  ok(' -> cache contains timestamp', typeof cache.timestamp === 'string', cache.timestamp);
  ok(' -> cache contains plugins array', Array.isArray(cache.plugins), typeof cache.plugins);
+ ok(' -> cache carries the scanned plugin (not just an empty shell)',
+ Array.isArray(cache.plugins) && cache.plugins.some((p) => p.id === 'fixture-plugin@fixture-market'),
+ JSON.stringify(cache.plugins).slice(0, 160));
  }
 
  // -- 13. P3-2: Matrix stratification (scope field) --
@@ -401,7 +456,13 @@ function createMockPluginDir(baseDir, pluginName, { skills = 0, agents = 0, comm
  const r13 = run('install');
  ok('install command completes execution', r13.code === 0, r13.out.slice(0, 200));
  const state13 = stateJson();
+ if (CLAUDE_HOST) {
  ok(' -> state.json contains pluginInstallationResult', state13.pluginInstallationResult !== undefined);
+ } else {
+ ok(' -> non-Claude host: install refused, state.json left untouched',
+ state13.pluginInstallationResult === undefined && /\[SKIP\] install/.test(r13.out),
+ JSON.stringify(state13).slice(0, 120));
+ }
  if (state13.pluginInstallationResult && state13.pluginInstallationResult.installed.length > 0) {
  // Verify scope field is recorded
  const installed = state13.pluginInstallationResult.installed;

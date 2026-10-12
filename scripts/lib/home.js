@@ -7,7 +7,7 @@
  * framework runs in, and it silently ignores an override that looks like it should work.
  * Measured on Windows (2026-10-11, Node 22):
  *
- *   HOME=C:\Users\dev            -> os.homedir() returns C:\Users\dev      (ignored HOME)
+ *   HOME=C:\Users\<user>        -> os.homedir() returns C:\Users\<user>   (ignored HOME)
  *   USERPROFILE=<fake>          -> os.homedir() returns <fake>            (honored)
  *   HOME=<fake> only            -> os.homedir() returns the real profile  (ignored)
  *

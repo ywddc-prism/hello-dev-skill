@@ -25,8 +25,8 @@ let pass = 0, fail = 0;
 const tmpRoots = [];
 
 function ok(name, cond, detail) {
- if (cond) { pass++; console.log(`  ${name}`); }
- else { fail++; console.log(`  ${name}${detail ? ` — ${detail}` : ''}`); }
+ if (cond) { pass++; console.log(` [ OK ] ${name}`); }
+ else { fail++; console.log(` [FAIL] ${name}${detail ? ` — ${detail}` : ''}`); }
 }
 function section(t) { console.log(`\n${t}`); }
 
@@ -217,13 +217,43 @@ section('6. --write idempotency and CLI');
 // Initially "0 detected but document non-empty" was always a failure, causing guaranteed
 // false failures on new machines. The check must distinguish "no local basis for judgment"
 // (SKIP) from "symlink resolution broken" (FAIL).
+//
+// These three scenarios need a machine that resolves *no* skills at all. They therefore run
+// the guard from a minimal **copy** of the repository instead of the repository itself:
+// detection here always finds this repo's own `skills/` directory (the `bundled` root), so
+// pointing HOME at an empty fixture can never reach 0 skills while the guard runs in-tree.
+// The copy holds the unmodified guard code plus the document and the related files that
+// checks 1-6 require.
 section('7. Validator degradation semantics (check-collaboration-matrix.js)');
 {
  const REPO = path.join(__dirname, '..');
- const CHECK = path.join(__dirname, 'check-collaboration-matrix.js');
+ const SKEL = mkTmp('hello-dev-skel-');
+ const SKEL_FILES = [
+ 'scripts/check-collaboration-matrix.js',
+ 'scripts/detect-skills.js',
+ 'scripts/lib/stages.js',
+ 'scripts/lib/home.js',
+ 'references/collaboration-matrix.md',
+ 'references/automation-charter.md',
+ 'modules/core/state-protocol.md',
+ 'modules/core/approval/git-gate.md',
+ 'modules/core/approval/ops-execution.md',
+ 'modules/core/approval/design-flow.md',
+ ];
+ for (const rel of SKEL_FILES) {
+ const dst = path.join(SKEL, rel);
+ fs.mkdirSync(path.dirname(dst), { recursive: true });
+ fs.copyFileSync(path.join(REPO, rel), dst);
+ }
+ const CHECK = path.join(SKEL, 'scripts', 'check-collaboration-matrix.js');
  const runCheck = (home) => {
+ const env = { ...process.env, HOME: home, CLAUDE_CONFIG_DIR: path.join(home, '.claude') };
+ // Neutralise the host-signature and home overrides: a real WorkBuddy session exports
+ // WORKBUDDY_SESSION (and a user may export HELLODEV_HOME/HELLODEV_HOST), either of which
+ // would make the scanner read the developer's real skill roots no matter what HOME says.
+ for (const k of ['HELLODEV_HOME', 'HELLODEV_HOST', 'WORKBUDDY_SESSION']) delete env[k];
  const r = require('child_process').spawnSync(process.execPath, [CHECK],
- { cwd: REPO, encoding: 'utf8', env: { ...process.env, HOME: home, CLAUDE_CONFIG_DIR: path.join(home, '.claude') } });
+ { cwd: SKEL, encoding: 'utf8', env });
  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
  };
 
@@ -247,17 +277,34 @@ section('7. Validator degradation semantics (check-collaboration-matrix.js)');
  ok('root exists, has entries, 0 resolved -> non-zero exit', c.code !== 0, `code=${c.code}\n${c.out.slice(-300)}`);
  ok('failure message points to symlink resolution', /symlinks not dereferenced|resolved to 0|Detected directory entries but parsed 0/.test(c.out), c.out.slice(-300));
 
- // Normal local path: when skills exist, must actually compare (not mask issues with SKIP)
+ // Normal local path: when skills exist, must actually compare (not mask issues with SKIP).
+ // The doc block was generated on the author's machine, so on any other machine the
+ // comparison reports a difference -- which is expected and must not be turned into a
+ // SKIP, and must not be turned into a failure either.
  const real = runCheck(os.homedir());
  const realHasSkills = D.detectSkills({}).count > 0;
- ok('real comparison executed when machine has skills', realHasSkills ? /§4\.2 matches live detection|S4\.2 consistent with live detection/.test(real.out) : real.code === 0,
+ ok('real comparison executed when machine has skills', realHasSkills
+ ? /S4\.2 consistent with live detection|S4\.2 content is inconsistent with live skill detection/.test(real.out)
+ : real.code === 0,
  `detected=${realHasSkills}\n${real.out.slice(-300)}`);
+ ok('content mismatch alone exits 0', real.code === 0, `code=${real.code}`);
 }
 
 /* ---------- 8. Document drift must be caught (adversarial cases) ---------- */
 // The entire value of the validator is "drift must turn red". Inject each type of drift
 // and assert it actually fails -- a perpetually-green validator is worse than none,
 // because it makes people trust the document.
+//
+// Two classes of drift, deliberately treated differently:
+//   - STRUCTURAL drift (missing markers, prose inside the block, a rewritten section
+//     heading, row count disagreeing with the declared count) must exit non-zero. The
+//     generator cannot produce these shapes, so they mean the file was edited by hand
+//     or is inconsistent with itself -- a defect on any machine.
+//   - CONTENT drift (the block lists a different set of installed skills than the reader's
+//     machine) must be *reported* and still exit 0. The block is generated from the author's
+//     installed skills and committed; every reader has a different set, so exact agreement
+//     is impossible for anyone but the author, and a permanently-red guard just teaches
+//     readers to ignore the whole script.
 section('8. Document drift detection (injection, all on copies)');
 {
  const REPO = path.join(__dirname, '..');
@@ -274,32 +321,41 @@ section('8. Document drift detection (injection, all on copies)');
  { cwd: REPO, encoding: 'utf8' });
  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
  };
- const withDrift = (mutate, label, expect) => {
+ const withDrift = (mutate, label, expect, code) => {
  fs.writeFileSync(COPY, mutate(original), 'utf8');
  try {
  const r = runCheck();
- ok(label, r.code !== 0 && expect.test(r.out), `code=${r.code}\n${r.out.slice(-200)}`);
+ const codeOk = code === 'fail' ? r.code !== 0 : r.code === 0;
+ ok(label, codeOk && expect.test(r.out), `code=${r.code}\n${r.out.slice(-200)}`);
  } finally {
  fs.writeFileSync(COPY, original, 'utf8'); // restore copy for subsequent tests and final assertion
  }
  };
 
+ // Structural drift: fatal.
  const CASES = [
+ // A row injected without updating the summary line: the declared count and the rows are
+ // written by the generator in one pass, so disagreeing means a broken block, not a
+ // difference between machines.
  [t => t.replace('<!-- END GENERATED: skills -->',
- '| `ghost-skill` | user | forged | hello-dev |\n<!-- END GENERATED: skills -->'),
- 'inject forged skill row -> fail', /document has.*machine lacks|inconsistent/],
- [t => t.replace('| `hello-dev` | user |', '| `hello-dev-renamed` | user |'),
- 'rename existing skill -> fail', /document has.*machine lacks|machine has.*document lacks|inconsistent/],
- [t => t.replace(/<!-- BEGIN GENERATED: skills -->\n/, ''),
- 'delete generation marker -> fail', /generation marker/],
- [t => t.replace(/(<!-- BEGIN GENERATED: skills -->\n)/, '$1\nmanually added prose\n'),
- 'insert prose line inside block -> fail', /non-table row/],
+ '| `ghost-skill` | user | forged | hello-dev |\r\n<!-- END GENERATED: skills -->'),
+ 'inject forged skill row without fixing row count -> fail', /declares \d+, table actually has \d+ rows/, 'fail'],
+ [t => t.replace('<!-- BEGIN GENERATED: skills -->', ''),
+ 'delete generation marker -> fail', /generation marker/, 'fail'],
+ // The mutation must survive CRLF line endings; a bare '\n' anchor silently makes the
+ // replace a no-op and the case then passes/fails for the wrong reason.
+ [t => t.replace(/(<!-- BEGIN GENERATED: skills -->)(\r?\n)/, '$1$2manually added prose$2'),
+ 'insert prose line inside block -> fail', /non-table row/, 'fail'],
  [t => t.replace('### 4.1 Routing Rules (manually maintained, authoritative)', '### 4.1 Routing Rules'),
- 'section 4.1 heading rewritten -> fail', /title is not the contract title/],
+ 'section 4.1 heading rewritten -> fail', /title is not the contract title/, 'fail'],
  [t => t.replace('### 4.2 Detected Skills (auto-generated)', '### 4.2 Detected Skills'),
- 'section 4.2 heading rewritten -> fail', /title is not the contract title/],
+ 'section 4.2 heading rewritten -> fail', /title is not the contract title/, 'fail'],
+ // Content drift: reported, exit 0. This is the cross-machine case in its purest form --
+ // the block points at a skill list that does not exist on this machine.
+ [t => t.replace('| `hello-dev` | user |', '| `hello-dev-renamed` | user |'),
+ 'rename a skill in the block -> warning, exit 0', /\[WARN\] S4\.2 content is inconsistent/, 'warn'],
  ];
- for (const [mutate, label, expect] of CASES) withDrift(mutate, label, expect);
+ for (const [mutate, label, expect, code] of CASES) withDrift(mutate, label, expect, code);
 
  // Cleanup: after restoring copy, must return to all-green
  const after = runCheck();

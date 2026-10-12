@@ -12,8 +12,14 @@ tmp/
 # Runtime: state files belong to each project, not to version control
 .hello-dev/
 
-# Development journal: this repo's change log is not portable config and must not be committed by adopting projects
-docs/progress_coding/
+# Development journal: this repo's change log is not portable config and must not be committed by adopting projects.
+# The journal stays unpublished, with one exception: _RULES.md is the authoritative log-rules file that
+# published documents link to by path (AGENTS.md, CONTRIBUTING.md, SKILL.md, modules/...), so leaving it
+# out of the repository breaks those links in every clone. The directory is therefore excluded by contents
+# (`docs/progress_coding/*`) rather than as a whole -- a negation cannot re-include a file whose parent
+# directory is excluded, so the whole-directory form would make the line below a no-op.
+docs/progress_coding/*
+!docs/progress_coding/_RULES.md
 
 # Host project-level workspace data (session state, daily logs, local scratch).
 # This directory also holds throwaway baselines that duplicate SKILL.md under the same

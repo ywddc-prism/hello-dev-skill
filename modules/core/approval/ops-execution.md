@@ -28,8 +28,8 @@ every recognized ops command can proceed after user confirmation with risk discl
 recorded here explicitly, because the difference is a deliberate substitution and not an oversight.
 
 The request that triggered this boundary re-drawing was, literally: *"only commands operated through
-`ssh` are ops commands; git operations need confirmation; that is all" (*only operations via ssh commands are*
-*ops commands, then git operations need confirmation, that is all*). Read verbatim, that criterion is **narrower in scope and
+`ssh` are ops commands; git operations need confirmation; that is all"* (`只有通过ssh命令操作的才是
+运维命令，然后git操作需要确认，仅此而已`). Read verbatim, that criterion is **narrower in scope and
 wider in effect** than what shipped:
 
 - Narrower: only `ssh`-mediated commands would be governed, so `kubectl` / `systemctl` / `terraform` /
@@ -504,8 +504,8 @@ were absent from `OPS_BINS`, making those branches dead code and the hook passin
 | Command | Risk | Decision | Description |
 |------|------|------|------|
 | `dism /get-features /online` | L0 | pass | Read-only DISM query |
-| `dism /online /enable-feature /featurename:Containers` | L2 | ask | State change |
-| `dism /online /disable-feature /featurename:Containers` | L2 | ask | State change |
+| `dism /online /enable-feature /featurename:Containers` | L3 | ask | State change |
+| `dism /online /disable-feature /featurename:Containers` | L3 | ask | State change |
 | `dism /cleanup-image /restorehealth` | L4 | deny | Not in DISM allowlist |
 
 **Reading the Decision column honestly:** unrecognized verb combinations within `wsl`/`dism` now

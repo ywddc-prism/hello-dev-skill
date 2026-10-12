@@ -22,8 +22,8 @@ function test(name, fn) {
 
 function setupProject(dir) {
   // Create .hello-dev/state.json with decomposition
-  var hello-dev = path.join(dir, '.hello-dev');
-  fs.mkdirSync(hello-dev, { recursive: true });
+  var helloDev = path.join(dir, '.hello-dev');
+  fs.mkdirSync(helloDev, { recursive: true });
   fs.writeFileSync(path.join(dir, '.git-marker'), '');
   fs.mkdirSync(path.join(dir, '.git'), { recursive: true });
 
@@ -44,7 +44,7 @@ function setupProject(dir) {
     },
     metadata: { createdAt: new Date().toISOString() },
   };
-  fs.writeFileSync(path.join(hello-dev, 'state.json'), JSON.stringify(state, null, 2));
+  fs.writeFileSync(path.join(helloDev, 'state.json'), JSON.stringify(state, null, 2));
 
   // Sibling task state (--task selector target). Separate decomposition so a test that
   // reads the wrong file cannot pass by coincidence.
@@ -53,7 +53,7 @@ function setupProject(dir) {
   sibling.decomposition.tasks = [
     { id: 's1', name: 'Sibling task', depends: [], affectedFiles: ['src/sibling.js'], status: 'pending' },
   ];
-  fs.writeFileSync(path.join(hello-dev, 'state.sibling-par1.json'), JSON.stringify(sibling, null, 2));
+  fs.writeFileSync(path.join(helloDev, 'state.sibling-par1.json'), JSON.stringify(sibling, null, 2));
 
   return dir;
 }
@@ -166,9 +166,9 @@ test('prompt contains all required sections', function() {
 test('no decomposition gives clear error', function() {
   var emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-prompt-empty-'));
   fs.mkdirSync(path.join(emptyDir, '.git'), { recursive: true });
-  var hello-dev = path.join(emptyDir, '.hello-dev');
-  fs.mkdirSync(hello-dev, { recursive: true });
-  fs.writeFileSync(path.join(hello-dev, 'state.json'), JSON.stringify({
+  var helloDev = path.join(emptyDir, '.hello-dev');
+  fs.mkdirSync(helloDev, { recursive: true });
+  fs.writeFileSync(path.join(helloDev, 'state.json'), JSON.stringify({
     schema: 1, name: 'empty', type: 'implementation', stages: {}, metadata: {},
   }));
   var r = run(['list'], emptyDir);

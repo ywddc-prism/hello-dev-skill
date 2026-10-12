@@ -13,10 +13,10 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
+          command: 'node "${HELLODEV_SKILL_DIR:?Set HELLODEV_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" git-gate'
           timeout: 10
         - type: command
-          command: 'node "${DEVLOOP_SKILL_DIR:?Set DEVLOOP_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
+          command: 'node "${HELLODEV_SKILL_DIR:?Set HELLODEV_SKILL_DIR to the hello-dev skill directory}/scripts/hook-resolver.js" opsgate'
           timeout: 10
 ---
 
@@ -54,7 +54,7 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 1. **用自然语言描述任务**(如"修一个 bug"、"先给个方案"、"重构认证模块")。
 2. **确认范围**:Agent 识别执行路径(design/full、implementation 或 fast),与你确认边界。
 3. **分解子任务**(单原子变更除外):每个子任务声明受影响的文件,用于冲突检测。
-4. **按阶段执行**:Bootstrap -> Requirement -> Implementation -> Testing -> Review -> Ship。设计路径在实现前增加 Feature Design 和 Architecture。
+4. **按阶段执行**:Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。设计路径在实现前插入 Tool Research、Feature Design、Architecture 和 Prototype。
 5. **验证并交付**:每个阶段产出必需产物;测试和评审门禁不可跳过。
 
 ## 执行契约
@@ -105,8 +105,8 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 
 ## 执行路径
 
-- **Design full**:Bootstrap -> Requirement -> Feature Design -> Architecture -> Implementation -> Testing -> Review -> Ship。
-- **明确方案实现/fast/其他带写入**:Bootstrap -> Requirement -> Implementation -> Testing -> Review -> Ship。
+- **Design full**:Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。
+- **明确方案实现/fast/其他带写入**:Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。
 - 小变更可使用 fast:预估 <50 行,无新依赖,无架构变更;规模仅是提示,不覆盖风险判断。
 - 纯设计或文档任务:实现阶段整理已批准的文档;测试验证一致性和示例,不生成用户未请求的代码。
 
@@ -185,12 +185,12 @@ node scripts/memory.js add --layer L2 --content "..." --source <实际证据>   
 | 运维命令风险和执行审批 | [ops-execution.md](modules/core/approval/ops-execution.md);风险表必须匹配 hooks/opsgate.js |
 | 变更日志 | [日志规则](docs/progress_coding/_RULES.md) |
 
-`agents/`、已归档的 `automation/` 和 `core/memory/` 历史设计不是当前执行基础。可选的学习和反思仅在用户需要时展开,不阻塞交付。详见 [modules/index.md](modules/index.md)。
+`agents/`、已归档的 `automation/` 和 `core/memory/` 历史设计不是当前执行基础。Learn、Evolution、Reflection、Archive 在全部执行路径上均为强制阶段（包括 `fast`、`tiny` 和 `other`），不是可选阶段；其完成检查点不可跳过，也不因交付而免除。详见 [modules/index.md](modules/index.md)。
 
 ## 验证本 Skill
 
 修改后运行 `bash scripts/self-check.sh`:语法、链接、索引、风险分类和状态行为测试。它验证有限的不变量,但不能证明平台 hooks 已注册或所有安全场景已覆盖。
 
-版本优化依据见 [OPTIMIZATION-REPORT.md](archive/OPTIMIZATION-REPORT.md)。安装副本同步需单独确认;默认仅 dry-run。
+版本优化依据见 `OPTIMIZATION-REPORT.md`（已归档，不在本发行版中）。安装副本同步需单独确认;默认仅 dry-run。
 
-宿主集成有条件：注册前用 `scripts/register-hooks.js` 明确宿主、settings 与 skill 路径。默认只读，写入需 `--apply` 和单独授权；WorkBuddy Desktop 默认使用 `~/.workbuddy/settings.json`。CodeBuddy CLI 的默认注入式 Skill **不会**注册 frontmatter hooks；fork 上下文还需要明确的宿主信任。本入口不自动切换 fork，也不开启信任。两个入口的 frontmatter 都通过 `DEVLOOP_SKILL_DIR` 调用 `scripts/hook-resolver.js`，命令中不含任何宿主 home 路径，仍只是声明而非加载证明；真实注册以所选路径的明确命令为准。配置检查、直接探针和带 caller 的版本记录不证明宿主实际消费 ask/deny。详见 [运行边界](references/runtime-adapters.md)。
+宿主集成有条件：注册前用 `scripts/register-hooks.js` 明确宿主、settings 与 skill 路径。默认只读，写入需 `--apply` 和单独授权；WorkBuddy Desktop 默认使用 `~/.workbuddy/settings.json`。CodeBuddy CLI 的默认注入式 Skill **不会**注册 frontmatter hooks；fork 上下文还需要明确的宿主信任。本入口不自动切换 fork，也不开启信任。两个入口的 frontmatter 都通过 `HELLODEV_SKILL_DIR` 调用 `scripts/hook-resolver.js`，命令中不含任何宿主 home 路径，仍只是声明而非加载证明；真实注册以所选路径的明确命令为准。配置检查、直接探针和带 caller 的版本记录不证明宿主实际消费 ask/deny。详见 [运行边界](references/runtime-adapters.md)。

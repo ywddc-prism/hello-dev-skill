@@ -652,7 +652,7 @@ Hello Dev 的状态存储在 `.hello-dev/state.json`：
 
 ### Q2：我可以在小项目上使用 Hello Dev 吗？
 
-**A**：可以。Hello Dev 提供了 `tiny` 和 `fast` 两条轻量路径，适合小项目。`tiny` 路径只有 3 个阶段（Bootstrap → Implementation → Ship），适合单文件修改。
+**A**：可以。Hello Dev 提供了 `tiny` 和 `fast` 两条轻量路径，适合小项目。`tiny` 路径执行与 `fast` 相同的 11 个阶段，由 lead agent 单独合并为四个阶段执行、不派发子 agent，适合单文件修改。
 
 ### Q3：Hello Dev 支持哪些编程语言？
 

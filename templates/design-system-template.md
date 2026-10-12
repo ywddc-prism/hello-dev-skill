@@ -267,24 +267,24 @@ Notes:
 
 ```
 design-system/
- tokens/
-    colors.json          # Color token definitions
-    typography.json      # Typography token definitions
-    spacing.json         # Spacing token definitions
-    shadows.json         # Shadow token definitions
- components/
-    button.md            # Per-component specification
-    input.md
-    ...
- themes/
-    light.md             # Light theme overrides
-    dark.md              # Dark theme overrides
- icons/
-    icon-catalog.md      # Icon naming and usage
- wireframes/              # SVG/HTML visual prototypes
-     style-board.svg
-     button-spec.svg
-     ...
+├── tokens/
+│   ├── colors.json          # Color token definitions
+│   ├── typography.json      # Typography token definitions
+│   ├── spacing.json         # Spacing token definitions
+│   └── shadows.json         # Shadow token definitions
+├── components/
+│   ├── button.md            # Per-component specification
+│   ├── input.md
+│   └── ...
+├── themes/
+│   ├── light.md             # Light theme overrides
+│   └── dark.md              # Dark theme overrides
+├── icons/
+│   └── icon-catalog.md      # Icon naming and usage
+└── wireframes/              # SVG/HTML visual prototypes
+    ├── style-board.svg
+    ├── button-spec.svg
+    └── ...
 ```
 
 > The file organization above is a recommendation. Actual structure depends on the project's technology stack and tooling. The Markdown specification documents are always authoritative; implementation files are derived from them.

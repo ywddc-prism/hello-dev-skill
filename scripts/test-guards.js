@@ -38,7 +38,6 @@ function check(name, cond, detail) {
 }
 
 function read(rel) { return fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8'); }
-function write(rel, text) { fs.writeFileSync(path.join(REPO_ROOT, rel), text); }
 
 /** Run fn with an injected change, then restore and assert the restore took. */
 function withInjection(rel, transform, fn) {
@@ -161,7 +160,7 @@ withInjection(SKILL, (t) => t.replace(
 });
 
 // Real defect from review round 3 (F1): a rival single-source claim.
-withInjection(TEAM_LEAD, (t) => t.replace('authoritative definition in `modules/core/task/escalation.md`', 'sole authoritative statement: defined here'), () => {
+withInjection(TEAM_LEAD, (t) => t.replace('权威定义在 `modules/core/task/escalation.md`', '全仓唯一表述：权威定义在此'), () => {
   const r = run('node', [GUARD_ESC]);
   check('rival single-source claim is caught', r.code === 1, `exit ${r.code}`);
 });
@@ -169,8 +168,8 @@ withInjection(TEAM_LEAD, (t) => t.replace('authoritative definition in `modules/
 // Real defect from review round 4: a carrier that holds the full restatement was absent
 // from a hardcoded site list, so flattening it went green. Discovery must catch it.
 withInjection('expert-packages/workbuddy/hello-dev/README.md', (t) => t.replace(
-  '**Cross-module judgment is by module root**: if all N locations fall within the same module root -> not cross-module; if N locations span different module roots -> cross-module per the >= 2 distinct module roots rule; in that case both "N-location sync" and "cross-module" hold simultaneously without overriding each other.',
-  'One logical change unit synchronized across N locations counts as one unit, not cross-module, does not accumulate lines.',
+  '**跨模块判定以模块根为准：全部 N 个落点落在同一模块根内 → 不计为跨模块；若 N 个落点分属不同模块根 → 按上句「落在 ≥ 2 个不同模块根 ⇒ 跨业务模块」计入，此时跨模块与「N 处同步」同时成立，两者互不覆盖。**',
+  '同一逻辑改动单元在 N 处同步计为一个改动单元、不计为跨模块、不累加行数。',
 ), () => {
   const r = run('node', [GUARD_ESC]);
   check('flattening a discovered carrier is caught', r.code === 1, `exit ${r.code}`);
@@ -178,22 +177,22 @@ withInjection('expert-packages/workbuddy/hello-dev/README.md', (t) => t.replace(
 
 // A rival claim reworded into a natural Chinese phrasing. A guard whose marker list is
 // narrower than the language it polices reports green on the same defect written differently
-// -- a reviewer demonstrated this with "sole authoritative statement".
+// -- a reviewer demonstrated this with "唯一权威表述".
 withInjection('expert-packages/workbuddy/hello-dev/README.md', (t) => t.replace(
-  '**This is the authoritative statement (and',
-  '**This file is the sole authoritative statement of escalation criteria (and',
+  '**以上是权威表述（与',
+  '**本文件是本仓升级判据的唯一权威表述（与',
 ), () => {
   const r = run('node', [GUARD_ESC]);
-  check('reworded rival claim (sole authoritative statement) is caught', r.code === 1, `exit ${r.code}`);
+  check('reworded rival claim (唯一权威表述) is caught', r.code === 1, `exit ${r.code}`);
 });
 
 // Explanatory uses of the same substrings must NOT be flagged.
 withInjection('expert-packages/workbuddy/hello-dev/README.md', (t) => t.replace(
-  '**This is the authoritative statement (and',
-  '**Semantic uniqueness note: This is the authoritative statement (and',
+  '**以上是权威表述（与',
+  '**语义唯一说明：以上是权威表述（与',
 ), () => {
   const r = run('node', [GUARD_ESC]);
-  check('explanatory semantic uniqueness is not flagged', r.code === 0, `exit ${r.code}`);
+  check('explanatory 语义唯一 is not flagged', r.code === 0, `exit ${r.code}`);
 });
 
 // Review round 5: never before tested, so untested -- a ghost exemption marker.
@@ -206,14 +205,14 @@ withInjection(GUARD_ESC, (t) => t.replace(
 });
 
 // Review round 5/6: a brand-new carrier must be discovered without editing the guard.
-withProbe('One logical change unit synchronized across N locations counts as one unit, not cross-module, does not accumulate lines.\n', () => {
+withProbe('同一逻辑改动单元在 N 处同步计为一个改动单元、不计为跨模块、不累加行数。\n', () => {
   const r = run('node', [GUARD_ESC]);
   check('a newly added carrier is discovered', r.code === 1, `exit ${r.code}`);
 });
 
 // Bypass found by the lead in the final round: the decomposition-only declaration used to
 // launder a flat conclusion into a pass.
-withProbe('One logical change unit synchronized across N locations counts as one unit, not cross-module, does not accumulate lines.\nThis table is the decomposition criterion, not the escalation criterion\n', () => {
+withProbe('同一逻辑改动单元在 N 处同步计为一个改动单元、不计为跨模块、不累加行数。\nThis table is the decomposition criterion, not the escalation criterion\n', () => {
   const r = run('node', [GUARD_ESC]);
   check('decomposition-only declaration does not launder a flat conclusion', r.code === 1, `exit ${r.code}`);
   check('  ...and says so', r.out.includes('does NOT launder'), 'laundering not reported');
@@ -247,29 +246,67 @@ withProbe('One logical change unit synchronized across N locations counts as one
   check('guard excludes the append-only change log', guardSrc.includes("'docs/progress_coding'"), 'change-log exclusion missing from EXCLUDED_PATHS');
 
   // Behavioural: the change log is a record, so a banned phrase written there must not be scanned.
+  //
+  // The fixture is created by this test instead of being read from the real change log. The journal
+  // is deliberately unpublished (`docs/progress_coding/*` in .gitignore, only _RULES.md ships), so
+  // reading it made this suite die with ENOENT on a fresh clone and never reach the assertions
+  // after this point. The fixture stays *inside* the excluded record directory on purpose: a
+  // fixture written anywhere else would not be a record surface, and the guard's green would then
+  // prove nothing about the exclusion this line exists to test.
   {
-    const logPath = 'docs/progress_coding/backend-dev-log.md';
-    const original = read(logPath);
+    const logPath = 'docs/progress_coding/.tmp-guard-log-probe.md';
+    const abs = path.join(REPO_ROOT, logPath);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, 'probe: this document is the single authoritative source\n');
     try {
-      write(logPath, `${original}\n\nprobe: this document is the single authoritative source\n`);
       const r = run('node', [GUARD_ESC]);
       check('a banned phrase in the change log does not redden the guard', r.code === 0, `exit ${r.code}`);
     } finally {
-      write(logPath, original);
+      fs.unlinkSync(abs);
     }
-    check(`restore ${logPath}`, read(logPath) === original, 'log content differs after restore');
+    check(`remove fixture ${logPath}`, !fs.existsSync(abs), 'fixture file left behind');
   }
 
-  // Behavioural proof: with the .hello-dev entry removed the guard must fail, because
-  // state.json genuinely still contains a banned phrase in a checkpoint reason. The
-  // assertion below is the behavioural evidence; no self-referential "this suite would
-  // catch it" claim is made, because such a claim is not evidence.
-  withInjection('scripts/check-escalation-consistency.js', (t) =>
-    t.replace(/^\s*'\.hello-dev':.*$\n/m, ''), () => {
-    const r = run('node', [GUARD_ESC]);
-    check('removing the .hello-dev exclusion reintroduces self-poisoning', r.code === 1, `exit ${r.code}`);
-    check('  ...and reports state.json as the rival', r.out.includes('.hello-dev/state.json'), 'state.json not named');
-  });
+  // Behavioural proof: with the .hello-dev entry removed the guard must fail, because runtime state
+  // genuinely quotes a banned phrase in a checkpoint reason -- a checkpoint that *describes* a defect
+  // is still runtime state, not documentation. The assertion below is the behavioural evidence; no
+  // self-referential "this suite would catch it" claim is made, because such a claim is not evidence.
+  //
+  // The poison is created by this test, for the same reason as the change-log fixture above:
+  // `.hello-dev/` is gitignored runtime state, so a fresh clone has none and the previous version of
+  // this check (which assumed a developer's working copy) could never pass there. A pre-existing
+  // state.json belongs to whoever is running the suite and is backed up and restored, never deleted.
+  {
+    const statePath = '.hello-dev/state.json';
+    const abs = path.join(REPO_ROOT, statePath);
+    const dir = path.dirname(abs);
+    const existed = fs.existsSync(abs);
+    const original = existed ? fs.readFileSync(abs, 'utf8') : null;
+    const dirExisted = fs.existsSync(dir);
+    fs.mkdirSync(dir, { recursive: true });
+    // Shaped like a real checkpoint reason: it names the banned phrase in order to report that a
+    // rival claim was removed. A guard that scans this file reads a record as a claim.
+    fs.writeFileSync(abs, JSON.stringify({
+      stage: 'implementation',
+      checkpoints: [{ reason: 'Removed a rival claim ("single authoritative source") from the package README.' }],
+    }, null, 2) + '\n');
+    try {
+      withInjection(GUARD_ESC, (t) =>
+        t.replace(/^\s*'\.hello-dev':.*$\n/m, ''), () => {
+        const r = run('node', [GUARD_ESC]);
+        check('removing the .hello-dev exclusion reintroduces self-poisoning', r.code === 1, `exit ${r.code}`);
+        check('  ...and reports state.json as the rival', r.out.includes('.hello-dev/state.json'), 'state.json not named');
+      });
+    } finally {
+      if (existed) fs.writeFileSync(abs, original);
+      else fs.unlinkSync(abs);
+      // Only a directory this test created is removed: a developer's own .hello-dev/ is not ours to delete.
+      if (!dirExisted) fs.rmdirSync(dir);
+    }
+    check(existed ? `restore ${statePath}` : `remove fixture ${statePath}`,
+      existed ? fs.readFileSync(abs, 'utf8') === original : !fs.existsSync(abs),
+      existed ? 'pre-existing state.json content differs after restore' : 'fixture file left behind');
+  }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -291,31 +328,31 @@ console.log('\nteam-lead wait clause (the four elements of the waiting obligatio
 // running" into a presumed failure. Nothing used to read this section, so a future doc edit
 // could delete it and the suite would stay green.
 function waitClauseElements(content) {
-  // NOTE: `'counts as error'.includes('is error')` is true, so a bare `includes('is error')` would stay
+  // NOTE: `'不算报错'.includes('算报错')` is true, so a bare `includes('算报错')` would stay
   // green even after the whole "counts as an error" enumeration is deleted -- the substring
   // survives inside its own negation. Bind the positive element to the (a)-(d) judgement
   // markers, which live ONLY inside that enumeration, so deleting it is actually detected.
   const errorsEnum = ['(a)', '(b)', '(c)', '(d)'].every((m) => content.includes(m));
-  // NOTE: same trap as `is error` above, and it actually fired here. `content.includes('probe')`
-  // is fed by the member-call-table sentence at the end of the clause ("probe confirms stopped then retry")
-  // as well as by the stall section, so deleting the entire three-step stall handling section left this
+  // NOTE: same trap as `算报错` above, and it actually fired here. `content.includes('探测')`
+  // is fed by the member-call-table sentence at the end of the clause ("探测确认停止后重试")
+  // as well as by the stall section, so deleting the entire 卡死处置三步 section left this
   // element green -- the assertion that was supposed to be the stall clause's ONLY watchdog
   // passed on a document with no stall clause at all. Bind it to the section's own unique
-  // anchor combination instead of one word: `three-step stall handling` is the section heading, and
-  // Step 2 / Step 3 occur nowhere else in the file (Step 1 alone is not unique -- it is
+  // anchor combination instead of one word: `卡死处置三步` is the section heading, and
+  // `第二步` / `第三步` occur nowhere else in the file (`第一步` alone is not unique -- it is
   // also the heading of the stage-classification section). `TaskOutput` + `block: false` is
   // the step-1 mechanism and is likewise unique to this section.
-  const stallSteps = content.includes('three-step stall handling')
-    && ['Step 1', 'Step 2', 'Step 3'].every((m) => content.includes(m))
+  const stallSteps = content.includes('卡死处置三步')
+    && ['第一步', '第二步', '第三步'].every((m) => content.includes(m))
     && content.includes('TaskOutput') && content.includes('block: false');
   return {
-    'positive obligation (must wait)': content.includes('must wait'),
-    'is-error enumeration (with (a)-(d) criteria and explicit failure)': content.includes('is error') && errorsEnum && content.includes('explicit failure'),
-    'counts-as-error enumeration (must continue waiting)': content.includes('counts as error') && content.includes('continue waiting'),
-    'stall three steps (probe whether still running)': stallSteps,
-    'member call table (four fields: dispatch target/dispatch time/wait or not/end method)':
-      content.includes('member call table')
-      && ['dispatch target', 'dispatch time', 'wait or not', 'end method'].every((f) => content.includes(f)),
+    '正向义务 (必须等待)': content.includes('必须等待'),
+    '算报错穷举 (含 (a)-(d) 判据与显式失败)': content.includes('算报错') && errorsEnum && content.includes('显式失败'),
+    '不算报错穷举 (必须继续等)': content.includes('不算报错') && content.includes('继续等'),
+    '卡死三步 (探测是否仍在运行)': stallSteps,
+    '成员调用表 (四字段: 派发对象/派发时间/是否等待/结束方式)':
+      content.includes('成员调用表')
+      && ['派发对象', '派发时间', '是否等待', '结束方式'].every((f) => content.includes(f)),
   };
 }
 {
@@ -326,14 +363,14 @@ function waitClauseElements(content) {
 }
 // Inject-red: delete the positive obligation and prove the very same predicate flips. The
 // assertion above reads this file, so a change to the file is exactly what reddens it.
-withInjection(TEAM_LEAD, (t) => t.replace(/must wait/g, 'should wait instead'), () => {
+withInjection(TEAM_LEAD, (t) => t.replace(/必须等待/g, '应当等待'), () => {
   const els = waitClauseElements(read(TEAM_LEAD));
-  check('  injected red: removing must wait flips "wait clause: positive obligation"',
-    els['positive obligation (must wait)'] === false, 'predicate did not flip after injection');
+  check('  injected red: removing 必须等待 flips "wait clause: 正向义务"',
+    els['正向义务 (必须等待)'] === false, 'predicate did not flip after injection');
 });
 
-// Inject-red: delete the entire stall clause and prove the stall three steps predicate flips. This is
-// the element that previously had NO real detector: the bare `includes('probe')` it used was
+// Inject-red: delete the entire stall clause and prove the 卡死三步 predicate flips. This is
+// the element that previously had NO real detector: the bare `includes('探测')` it used was
 // satisfied by the member-call-table sentence at the end of the section, so the section could
 // be deleted wholesale and the assertion -- the clause's only watchdog -- still passed. The
 // second check below documents that failure mode, but it deliberately asserts on the literal
@@ -341,19 +378,19 @@ withInjection(TEAM_LEAD, (t) => t.replace(/must wait/g, 'should wait instead'), 
 // document here made the check red on any legitimate future edit to that wording, i.e. it
 // false-positived on prose the guard does not own (review round 3). The regression the check
 // exists for is proven by the assertion on line 1 below, which flips on the injected text.
-withInjection(TEAM_LEAD, (t) => t.replace(/\*\*three-step stall handling\*\*[\s\S]*?\n\n/, ''), () => {
+withInjection(TEAM_LEAD, (t) => t.replace(/\*\*卡死处置三步\*\*[\s\S]*?\n\n/, ''), () => {
   const els = waitClauseElements(read(TEAM_LEAD));
-  check('  injected red: deleting the three-step stall handling section flips "wait clause: stall three steps"',
-    els['stall three steps (probe whether still running)'] === false, 'predicate did not flip after injection');
-  check('  ...and documents why the old bare `probe` predicate was fooled (substring trap)',
-    'probe confirms stopped then retry'.includes('probe'), 'the substring trap this check documents no longer holds');
+  check('  injected red: deleting the 卡死处置三步 section flips "wait clause: 卡死三步"',
+    els['卡死三步 (探测是否仍在运行)'] === false, 'predicate did not flip after injection');
+  check('  ...and documents why the old bare `探测` predicate was fooled (substring trap)',
+    '探测确认停止后重试'.includes('探测'), 'the substring trap this check documents no longer holds');
 });
 
 // ---------------------------------------------------------------------------------------
-console.log('\nProhibited behaviors coverage across every registered agent');
+console.log('\n禁止行为 coverage across every registered agent');
 
 // Requirement: each member does only its own part. The mechanic checkable landing point is
-// that every agent file declares a `## Prohibited behaviors` section. Review found the lead was the sole
+// that every agent file declares a `## 禁止行为` section. Review found the lead was the sole
 // file missing it (14/15) and NOTHING would have reported that -- the count was inspected by
 // eye. The expected count is read from plugin.json rather than hardcoded, so a newly
 // registered member automatically raises the bar instead of leaving a stale magic number.
@@ -362,23 +399,23 @@ console.log('\nProhibited behaviors coverage across every registered agent');
   const registered = pj.agents || [];
   const onDisk = fs.readdirSync(path.join(REPO_ROOT, AGENTS_SRC, 'agents'))
     .filter((f) => f.endsWith('.md'));
-  const missing = onDisk.filter((f) => !/^## Prohibited behaviors/m.test(read(`${AGENTS_SRC}/agents/${f}`)));
-  check(`Prohibited behaviors present in every agent file (${onDisk.length} files)`,
+  const missing = onDisk.filter((f) => !/^## 禁止行为/m.test(read(`${AGENTS_SRC}/agents/${f}`)));
+  check(`禁止行为 present in every agent file (${onDisk.length} files)`,
     missing.length === 0, `missing: ${missing.join(', ') || '-'}`);
   // The orphan direction: an agent file on disk that plugin.json never names would never be
   // dispatched, so it must not be able to sit outside this coverage count.
   check('every agent file is registered in plugin.json (coverage cannot be bypassed by an orphan)',
     onDisk.length === registered.length, `on disk ${onDisk.length} vs registered ${registered.length}`);
 }
-// Inject-red: rename one agent's Prohibited behaviors heading and prove the coverage predicate flips.
+// Inject-red: rename one agent's 禁止行为 heading and prove the coverage predicate flips.
 // The predicate below is the same one the assertion above applies, so this proves the
 // assertion's own detector -- not merely that some string is absent.
 const missingProhibited = () => fs.readdirSync(path.join(REPO_ROOT, AGENTS_SRC, 'agents'))
   .filter((f) => f.endsWith('.md'))
-  .filter((f) => !/^## Prohibited behaviors/m.test(read(`${AGENTS_SRC}/agents/${f}`)));
+  .filter((f) => !/^## 禁止行为/m.test(read(`${AGENTS_SRC}/agents/${f}`)));
 withInjection(`${AGENTS_SRC}/agents/hello-dev-implementer.md`,
-  (t) => t.replace(/^## Prohibited behaviors$/m, '## Allowed behaviors'), () => {
-    check('  injected red: renaming a Prohibited behaviors heading flips the coverage assertion',
+  (t) => t.replace(/^## 禁止行为$/m, '## 允许行为'), () => {
+    check('  injected red: renaming a 禁止行为 heading flips the coverage assertion',
       missingProhibited().includes('hello-dev-implementer.md'), 'heading survived injection');
   });
 

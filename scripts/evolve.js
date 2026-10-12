@@ -348,7 +348,7 @@ function cmdEvaluate(args) {
     // 1. Hard gate: touch forbidden zone = direct rejection, don't enter benefit comparison
     const forbidden = checkForbidden(candText);
     if (forbidden.length) {
-      const reason = forbidden.map(f => f.why).join('');
+      const reason = forbidden.map(f => f.why).join('；');
       recordReject(e, abs, reason, forbidden.map(f => f.id));
       write(root, e);
       return { verdict: 'REJECTED', phase: 'hard-gate', reasons: forbidden.map(f => f.why),
@@ -479,12 +479,22 @@ function cmdDiagnose() {
   const nowMs = Date.now();
   const DAY = 86400000;
 
+  // Read state.json (read-only) to surface stage rollbacks. If absent/unreadable,
+  // rollbacks simply stay empty -- diagnose must not fail because state.json is missing.
+  let stateData = null;
+  try {
+    stateData = JSON.parse(fs.readFileSync(path.join(root, DIR, 'state.json'), 'utf8'));
+  } catch (e) {
+    // no state.json / unreadable -> treat as no rollback evidence
+  }
+
   const diagnosis = {
     retrievalQuality: [],   // retrieved but never adopted
     harmfulMemories: [],    // outcome contains regressed
     deadPatterns: [],       // L3/L4 not retrieved for long time
     lowValueMemories: [],   // outcomes all no_effect
     evidenceGaps: [],       // has adopt but no outcome
+    stageRollbacks: [],     // stage.history entries with status rolled_back
   };
 
   for (const e of entries) {
@@ -538,14 +548,27 @@ function cmdDiagnose() {
     }
   }
 
+  // Rollback visibility: count stage.history entries that were rolled back.
+  // state.js pushes { stage, status: 'rolled_back', at } for each downstream stage on rollback.
+  if (stateData && stateData.stage && Array.isArray(stateData.stage.history)) {
+    for (const h of stateData.stage.history) {
+      if (h.status === 'rolled_back') {
+        diagnosis.stageRollbacks.push({
+          stage: h.stage, status: h.status, at: h.at || null,
+        });
+      }
+    }
+  }
+
   const summary = {
     totalIssues: diagnosis.retrievalQuality.length + diagnosis.harmfulMemories.length +
       diagnosis.deadPatterns.length + diagnosis.lowValueMemories.length +
-      diagnosis.evidenceGaps.length,
-    critical: diagnosis.harmfulMemories.length,
+      diagnosis.evidenceGaps.length + diagnosis.stageRollbacks.length,
+    critical: diagnosis.harmfulMemories.length + diagnosis.stageRollbacks.length,
     warning: diagnosis.retrievalQuality.length + diagnosis.deadPatterns.length,
     info: diagnosis.lowValueMemories.length + diagnosis.evidenceGaps.length,
     totalEntries: entries.length,
+    stageRollbackCount: diagnosis.stageRollbacks.length,
   };
 
   return { diagnosis, summary };
@@ -605,6 +628,11 @@ function cmdGenerate(args) {
 
   // Save to evolve.json
   return withLockRMW(root, (e) => {
+    // Generation consumes budget like any other state-writing entry point, so the same gate
+    // applies here. enforceBudget may set e.budget.stopped, so the stop state must still be
+    // persisted even though the call throws -- same wrapping as cmdReject.
+    try { enforceBudget(e); }
+    catch (err) { write(root, e); throw err; }
     // Merge generated candidates into candidates array (don't overwrite existing)
     for (const c of candidates) {
       const existing = e.candidates.find(x => x.target === c.target && x.type === c.type);

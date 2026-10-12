@@ -81,13 +81,13 @@
 
 ```
  [Root]
-  [Section 1]
-     [Subsection 1.1]
-     [Subsection 1.2]
-  [Section 2]
-     [Subsection 2.1]
-     [Subsection 2.2]
-  [Section 3]
+ ├── [Section 1]
+ │   ├── [Subsection 1.1]
+ │   └── [Subsection 1.2]
+ ├── [Section 2]
+ │   ├── [Subsection 2.1]
+ │   └── [Subsection 2.2]
+ └── [Section 3]
 ```
 
 ### Content Grouping Principles

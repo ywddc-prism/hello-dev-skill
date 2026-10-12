@@ -14,7 +14,10 @@
  *   4. Gate types match state-protocol.md
  *   5. S4.2 generated block structure (no extra/duplicate lines; count is self-consistent)
  *   6. S4.2 generated block matches live skill detection row-by-row (name/source/applicable rule)
+ *      -- WARNING only, never a failure. See the comment at the comparison site for why.
  *   7. S4.1 route labels match detector RULES table bidirectionally (including "unclassified" fallback label)
+ *
+ * Checks 5 and 7 are fatal; check 6 is not, because S4.2 is machine-generated.
  *
  * Usage: node scripts/check-collaboration-matrix.js
  */
@@ -37,6 +40,15 @@ function fail(msg) {
 
 function pass(msg) {
   console.log(`[OK] ${msg}`);
+}
+
+// Non-fatal finding. Kept visually distinct from `fail` (X) and from `pass`
+// ([OK]) so a reader can tell "this repo is fine" from "this file describes a
+// different machine". Counted so the closing line cannot hide it.
+let warnings = 0;
+function warn(msg) {
+  warnings++;
+  console.warn(`[WARN] ${msg}`);
 }
 
 // Read the collaboration matrix document. --doc is for testing: adversarial
@@ -182,15 +194,27 @@ if (detection.count === 0) {
 } else {
   // Check 9: Row-by-row comparison (name + source + applicable rule). Using Map
   // not Set — same name different source must be distinguishable.
-  // Summary line count also judged here: failing early would short-circuit the
-  // row comparison, so "inject one fake skill" would only report count mismatch,
-  // with the real cause blocked (observed in practice).
   //
-  // Cross-machine tolerance: S4.2 is machine-generated and committed. Different
-  // machines have different skill sets, so row-by-row comparison will always
-  // fail when switching machines. Set HELLODEV_SKIP_S42_CONTENT=1 to skip the
-  // content comparison (stale/missing/relabeled rows) while still validating
-  // structure (markers, format, duplicates, count consistency).
+  // The summary line's declared count is judged here too rather than earlier:
+  // failing early would short-circuit the row comparison, so "inject one fake
+  // skill" would only report count mismatch, with the real cause blocked
+  // (observed in practice). The declared count stays **fatal** — the generator
+  // writes the summary line and the rows in the same pass, so a disagreement is
+  // a broken block, not a difference between two machines.
+  //
+  // The row-by-row comparison itself is a **warning, never a failure**. Why:
+  // this block is generated from whichever skills happen to be installed on the
+  // machine that ran `detect-skills.js --write`, and then committed. Every reader
+  // of this repository has a different set of installed skills, so exact
+  // agreement with the reader's own machine is impossible for everyone but the
+  // author. A guard that is permanently red on every clone protects nothing — it
+  // teaches readers to ignore this whole script, which costs more than the
+  // comparison is worth. The mismatch is therefore still printed in full (which
+  // entries are on this machine but not in the doc, and vice versa) and still
+  // tells the reader how to refresh, but it no longer decides the exit code.
+  // Every structural assertion — markers, block format, duplicates, row count,
+  // section contract titles, rule labels — remains fatal.
+  // Set HELLODEV_SKIP_S42_CONTENT=1 to suppress the comparison entirely.
   const skipContent = process.env.HELLODEV_SKIP_S42_CONTENT === '1';
   const countMismatch = block.declaredCount !== null && block.declaredCount !== blockRows.length;
   const key = r => `${r.name}\u0000${r.source}`;
@@ -200,18 +224,15 @@ if (detection.count === 0) {
   const missing = [...actual.keys()].filter(k => !declared.has(k)).map(k => k.replace('\u0000', ' @ '));
   const relabeled = [...actual.keys()].filter(k => declared.has(k) && declared.get(k) !== actual.get(k))
     .map(k => `${k.replace('\u0000', ' @ ')}: doc ${declared.get(k)} != detected ${actual.get(k)}`);
-  if (skipContent) {
-    if (countMismatch) {
-      fail(`S4.2 summary declares ${block.declaredCount}, table actually has ${blockRows.length} rows (count is structure, not content)`);
-    } else {
-      pass(`S4.2 content comparison skipped (HELLODEV_SKIP_S42_CONTENT=1; ${detection.count} live skills vs ${blockRows.length} doc rows)`);
-    }
-  } else if (stale.length || missing.length || relabeled.length || countMismatch) {
-    if (countMismatch) console.error(`  Summary declares ${block.declaredCount}, table actually has ${blockRows.length} rows`);
+  if (countMismatch) {
+    fail(`S4.2 summary declares ${block.declaredCount}, table actually has ${blockRows.length} rows (count is structure, not content)`);
+  } else if (skipContent) {
+    pass(`S4.2 content comparison skipped (HELLODEV_SKIP_S42_CONTENT=1; ${detection.count} live skills vs ${blockRows.length} doc rows)`);
+  } else if (stale.length || missing.length || relabeled.length) {
     if (stale.length) console.error(`  In doc but not on this machine: ${stale.slice(0, 8).join(', ')}${stale.length > 8 ? ` etc. ${stale.length} total` : ''}`);
     if (missing.length) console.error(`  On this machine but not in doc: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ` etc. ${missing.length} total` : ''}`);
     if (relabeled.length) console.error(`  Applicable rule mismatch: ${relabeled.slice(0, 5).join('; ')}`);
-    fail('S4.2 inconsistent with live detection; run node scripts/detect-skills.js --write to refresh');
+    warn('S4.2 content is inconsistent with live skill detection on this machine; non-fatal by design (the block is machine-generated, see the comment above). Refresh this block with node scripts/detect-skills.js --write');
   } else {
     const bySource = [...new Set(detection.skills.map(s => s.source))].sort().join(', ');
     pass(`S4.2 consistent with live detection (${detection.count} skills; sources: ${bySource})`);
@@ -255,4 +276,6 @@ if (missingInDoc.length) fail(`S4.1 missing rule labels already registered by de
 if (notInDetector.length) fail(`S4.1 has rule labels the detector doesn't recognize: ${notInDetector.join(', ')} (should be registered in detect-skills.js RULES table)`);
 pass(`S4.1 route labels consistent with detector RULES (${ruleLabels.join(', ')})`);
 
-console.log(`\n[OK] Collaboration matrix consistency check passed`);
+console.log(warnings
+  ? `\n[OK] Collaboration matrix consistency check passed with ${warnings} warning(s)`
+  : '\n[OK] Collaboration matrix consistency check passed');

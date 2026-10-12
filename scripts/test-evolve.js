@@ -427,7 +427,11 @@ try {
  }],
  ];
  for (const [name, bad] of cases) {
- project('badmem-' + name.slice(0, 6));
+ // Slug the case name: a raw slice can end in a space (e.g. "layer " of
+ // "layer illegal + working not array"), and Windows CreateProcess refuses a
+ // cwd whose final path component has a trailing space -- spawnSync then returns
+ // status null / ENOENT instead of running the case at all.
+ project('badmem-' + name.replace(/[^a-z0-9]+/gi, '-').slice(0, 24));
  fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify(bad));
  const r = run('status');
  ok(`evolve status rejects [${name}]`, r.code !== 0 && /memory file error|illegal/.test(r.out),
@@ -782,7 +786,164 @@ try {
  ok(' -> summary.recalledAndAdopted=1', rcAd.summary.recalledAndAdopted === 1, '');
  }
 
- console.log(`\n=== evolve.js: ${pass} passed / ${failN} failed ===`);
+ // -- 19. diagnose: stage rollback visibility (reads state.json) --
+ console.log('-- 19. diagnose (stage rollbacks visibility) --');
+ {
+ // No state.json -> stageRollbacks empty (diagnose must not fail)
+ project('diag-no-state');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1, entries: [], working: [],
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const dNoState = json(['diagnose']);
+ ok('no state.json -> stageRollbacks empty',
+ Array.isArray(dNoState.diagnosis.stageRollbacks) && dNoState.diagnosis.stageRollbacks.length === 0,
+ JSON.stringify(dNoState.diagnosis.stageRollbacks));
+ ok(' -> summary.stageRollbackCount = 0', dNoState.summary.stageRollbackCount === 0,
+ JSON.stringify(dNoState.summary));
+
+ // state.json with rolled_back entries -> detected and counted
+ project('diag-rollbacks');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1, entries: [], working: [],
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const rbTs = new Date().toISOString();
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'state.json'), JSON.stringify({
+ schema: 1,
+ task: { name: 'test task', type: 'implementation', path: 'full' },
+ stage: { current: 'testing', status: 'in_progress', attempt: 4, checkpointStart: 0, history: [
+ { stage: 'design', status: 'completed', at: rbTs },
+ { stage: 'implementation', status: 'completed', at: rbTs },
+ { stage: 'testing', status: 'rolled_back', at: rbTs },
+ { stage: 'implementation', status: 'rolled_back', at: rbTs },
+ { stage: 'design', status: 'rolled_back', at: rbTs },
+ ] },
+ modules: {},
+ retry: { perModuleMax: 3, totalMax: 9, perModule: {}, total: 3 },
+ checkpoints: [], blocked: null,
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const dRb = json(['diagnose']);
+ ok('3 rolled_back entries detected', dRb.diagnosis.stageRollbacks.length === 3,
+ JSON.stringify(dRb.diagnosis.stageRollbacks));
+ ok(' -> summary.stageRollbackCount = 3', dRb.summary.stageRollbackCount === 3,
+ JSON.stringify(dRb.summary));
+ ok(' -> rollbacks counted as critical', dRb.summary.critical === 3, JSON.stringify(dRb.summary));
+ ok(' -> totalIssues includes rollbacks', dRb.summary.totalIssues === 3, JSON.stringify(dRb.summary));
+
+ // state.json without rollbacks -> empty (counter-example: not always-count)
+ project('diag-no-rollbacks');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1, entries: [], working: [],
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'state.json'), JSON.stringify({
+ schema: 1,
+ task: { name: 'clean task', type: 'implementation', path: 'full' },
+ stage: { current: 'design', status: 'in_progress', attempt: 1, checkpointStart: 0, history: [
+ { stage: 'design', status: 'in_progress', at: rbTs },
+ ] },
+ modules: {},
+ retry: { perModuleMax: 3, totalMax: 9, perModule: {}, total: 0 },
+ checkpoints: [], blocked: null,
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const dClean = json(['diagnose']);
+ ok('state.json without rollbacks -> stageRollbacks empty',
+ dClean.diagnosis.stageRollbacks.length === 0, JSON.stringify(dClean.diagnosis.stageRollbacks));
+ ok(' -> summary.stageRollbackCount = 0', dClean.summary.stageRollbackCount === 0, '');
+ }
+
+ // -- 20. generate cannot bypass budget (same gate as evaluate/reject) --
+// **Real defect**: generate was the only state-writing entry point that never called
+// enforceBudget, so the repository reached 20 candidates against maxCandidates=10 while
+// budget still reported "not stopped". A budget enforced at only some entry points is no budget.
+console.log('-- 20. generate goes through same budget gate --');
+{
+ // (1) Candidate count already at maxCandidates -> generate must refuse and must not add candidates
+ project('gen-budget');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'gb1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pg = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pg, JSON.stringify({
+ schema: 1, mode: 'observe',
+ candidates: [{ id: 'old-1', path: '(generated)', type: 'L4-update', target: 'unrelated-entry',
+ status: 'generated', createdAt: new Date().toISOString(), evaluatedAt: null,
+ verdict: null, reason: null }],
+ evaluations: [],
+ budget: { maxCandidates: 1, maxEvaluations: 10, used: 0, stopped: null },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ // The fixture must be able to produce at least one candidate, otherwise "no candidate added"
+ // holds for the wrong reason (there was nothing to add).
+ const dg = json(['diagnose']);
+ ok('generate fixture has a real issue to act on',
+ dg.summary.totalIssues >= 1, JSON.stringify(dg.summary));
+ const gStop = run('generate');
+ ok('**generate refused when candidate budget reached**', gStop.code !== 0, gStop.out.slice(0, 160));
+ ok(' -> error explains budget stop', /Budget stopped/.test(gStop.out), gStop.out.slice(0, 160));
+ ok(' -> states the candidate limit', /limit 1/.test(gStop.out), gStop.out.slice(0, 160));
+ const evG = readEvolve();
+ ok(' -> no candidate added', evG.candidates.length === 1,
+ JSON.stringify(evG.candidates.map(c => c.id)));
+ ok(' -> stop state persisted by the refused call',
+ evG.budget.stopped !== null && /limit 1/.test(String(evG.budget.stopped.reason)),
+ JSON.stringify(evG.budget.stopped));
+
+ // (2) Pre-existing stop state must also block generate, and must survive the refused call
+ project('gen-stopped');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'gs1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pg2 = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pg2, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 10, used: 1,
+ stopped: { at: new Date().toISOString(), reason: 'human review pending' } },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gStopped = run('generate');
+ ok('**generate refused when stop already set**', gStopped.code !== 0, gStopped.out.slice(0, 160));
+ ok(' -> refuses because of the stop, not something else',
+ /human review pending/.test(gStopped.out), gStopped.out.slice(0, 160));
+ const evG2 = readEvolve();
+ ok(' -> candidates still empty', (evG2.candidates || []).length === 0,
+ JSON.stringify(evG2.candidates));
+ ok(' -> original stop state preserved', evG2.budget.stopped !== null &&
+ evG2.budget.stopped.reason === 'human review pending', JSON.stringify(evG2.budget.stopped));
+
+ // (3) Counter-example: budget available -> generate still succeeds (gates must not always-refuse)
+ project('gen-budget-ok');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'gk1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pg3 = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pg3, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 10, used: 0, stopped: null },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gOk = json(['generate']);
+ ok('budget available -> generate still succeeds (not always-refuse)', gOk.generated >= 1,
+ JSON.stringify(gOk).slice(0, 160));
+ ok(' -> candidates persisted', readEvolve().candidates.length >= 1,
+ JSON.stringify(readEvolve().candidates.length));
+ ok(' -> no stop set', readEvolve().budget.stopped === null,
+ JSON.stringify(readEvolve().budget.stopped));
+}
+
+console.log(`\n=== evolve.js: ${pass} passed / ${failN} failed ===`);
  process.exitCode = failN ? 1 : 0;
 } finally {
  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) { /* best effort */ }

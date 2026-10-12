@@ -62,7 +62,8 @@ try {
  assert.equal(state().stage.status, 'in_progress');
  beginRequirement();
  no('stage', 'requirement', 'completed');
- cp('Requirement confirmed', 'warn'); no('stage', 'requirement', 'completed');
+ no('checkpoint', 'Requirement confirmed', 'warn', '--reason', 'warn should be rejected at CLI level');
+ cp('Requirement confirmed');
  cp('Requirement confirmed');
  no('stage', 'requirement', 'completed'); // missing decomposition plan
  cp('Decomposition plan');
@@ -700,5 +701,45 @@ try {
  // Malformed state should report a validation error, not an uncaught stack trace.
  fs.writeFileSync(path.join(cwd, '.hello-dev/state.json'), '{}');
  const invalid = run('validate'); assert.notEqual(invalid.code, 0); assert.doesNotMatch(invalid.out, /TypeError|at cmd/); checks++;
- console.log(`state.js: ${checks} CLI assertions passed`);
+ // Reason length floor: the fast path lowers it for the four post-delivery retrospective
+// stages and for nothing else. Three boundaries are asserted, and the 11-char rejection is
+// the load-bearing one -- it proves the floor was lowered, not deleted. The same 12 chars
+// that settles `learn` on `fast` must still be refused on `full`, and `testing` (an evidence
+// gate) must keep the full floor on `fast`, because "tests went green but nothing was
+// verified" does not become less likely on a small task.
+project('floor-fast', 'implementation', 'fast'); beginRequirement(); confirm();
+ok('stage', 'implementation', 'in_progress'); ok('stage', 'implementation', 'completed');
+ok('stage', 'testing', 'in_progress');
+ok('checkpoint', 'Testing', 'pass', '--reason', 'x'.repeat(12));
+no('stage', 'testing', 'completed');
+assert.match(run('stage', 'testing', 'completed').out, /need at least 40 \(full path floor\)/,
+ 'evidence gate must keep the full floor on the fast path'); checks++;
+cp('Testing'); ok('stage', 'testing', 'completed');
+ok('stage', 'review', 'in_progress'); cp('Review'); ok('stage', 'review', 'completed');
+ok('stage', 'ship', 'in_progress'); ok('stage', 'ship', 'completed');
+ok('stage', 'learn', 'in_progress');
+// 11 chars is below the lowered floor -> still refused, and the message names the applied floor.
+ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(11));
+no('stage', 'learn', 'completed');
+assert.match(run('stage', 'learn', 'completed').out, /need at least 12 \(fast path floor\)/,
+ 'the fast-path floor must be reported as the floor actually applied'); checks++;
+// 12 chars is at the lowered floor -> settles the checkpoint and completes the stage.
+ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(12));
+ok('stage', 'learn', 'completed');
+
+project('floor-full', 'implementation', 'full'); beginRequirement(); confirm();
+ok('stage', 'implementation', 'in_progress'); ok('stage', 'implementation', 'completed');
+ok('stage', 'testing', 'in_progress'); cp('Testing'); ok('stage', 'testing', 'completed');
+ok('stage', 'review', 'in_progress'); cp('Review'); ok('stage', 'review', 'completed');
+ok('stage', 'ship', 'in_progress'); ok('stage', 'ship', 'completed');
+ok('stage', 'learn', 'in_progress');
+// The same 12-char reason is refused on the full path, where the floor stays at 40.
+ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(12));
+no('stage', 'learn', 'completed');
+assert.match(run('stage', 'learn', 'completed').out, /need at least 40 \(full path floor\)/,
+ 'the full path must keep the 40-char floor on a post-delivery stage'); checks++;
+ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(40));
+ok('stage', 'learn', 'completed');
+
+console.log(`state.js: ${checks} CLI assertions passed`);
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }

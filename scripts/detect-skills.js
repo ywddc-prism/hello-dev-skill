@@ -389,7 +389,13 @@ function analyzeBlock(text) {
     const k = `${r.name}\u0000${r.source}`;
     if (seen.has(k)) duplicates.push(`${r.name} @ ${r.source}`); else seen.add(k);
   }
-  const m = body.match(/after dedup\s*(\d+)/);
+  // Read back the count **in the order the renderer writes it**: `${count} after
+  // dedup (${breakdown})`. The previous pattern (`/after dedup\s*(\d+)/`) expected the
+  // digits after the words, which the generator never produces, so declaredCount was
+  // always null and the "summary count matches table row count" check in
+  // check-collaboration-matrix.js could never fire — a structural assertion that was
+  // silently green. Verified against a generated block: `45 after dedup (bundled 2 / ...)`.
+  const m = body.match(/(\d+)\s*after dedup/);
   return { rows, anomalies, duplicates, declaredCount: m ? Number(m[1]) : null };
 }
 

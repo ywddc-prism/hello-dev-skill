@@ -1,28 +1,28 @@
 name: Hello Dev Self-Check
 
 on:
- push:
- branches: [main, develop]
- pull_request:
- branches: [main]
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
 jobs:
- self-check:
- runs-on: ubuntu-latest
- steps:
- - uses: actions/checkout@v3
- 
- - name: Setup Node.js
- uses: actions/setup-node@v3
- with:
- node-version: '20'
- 
- - name: Run Self-Check
- run: bash scripts/self-check.sh
- timeout-minutes: 2
- 
- - name: Check for Failures
- if: failure()
- run: |
- echo " Self-check failed. Please run 'bash scripts/self-check.sh' locally and fix the issues."
- exit 1
+  self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Run Self-Check
+        run: bash scripts/self-check.sh
+        timeout-minutes: 20
+
+      - name: Report Failure
+        if: failure()
+        run: |
+          echo "Self-check failed. Run 'bash scripts/self-check.sh' locally and fix the issues."
+          exit 1

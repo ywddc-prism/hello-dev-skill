@@ -545,13 +545,13 @@ check('HELLODEV_OPSGATE=off disables', 'kubectl delete pod x', { HELLODEV_OPSGAT
 
   // Create a temporary fixture directory with .hello-dev/state.json
   const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opsgate-escape-'));
-  const hello-devDir = path.join(fixtureDir, '.hello-dev');
-  fs.mkdirSync(hello-devDir);
+  const helloDevDir = path.join(fixtureDir, '.hello-dev');
+  fs.mkdirSync(helloDevDir);
 
   // Helper: write a state.json with given ops section
   function writeFixture(ops) {
     const state = { ops };
-    fs.writeFileSync(path.join(hello-devDir, 'state.json'), JSON.stringify(state));
+    fs.writeFileSync(path.join(helloDevDir, 'state.json'), JSON.stringify(state));
   }
 
   // Future expiry (valid credential)

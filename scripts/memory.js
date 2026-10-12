@@ -278,7 +278,7 @@ function writeMem(root, m) {
  * better not merge than mistakenly merge.
  */
 function fingerprint(s) {
-  return s.replace(/\s+/g, '').replace(/[""'',;!?]/g, '');
+  return s.replace(/\s+/g, '').replace(/[，。、；：""''（）,;!?]/g, '');
 }
 
 // ——— Write gate: shared by add and working, avoid L1 bypass ———
@@ -445,8 +445,8 @@ function cmdAdd(args) {
       } else {
         dup.tags = [...new Set([...dup.tags, ...tags])];
         // Source only increases, never decreases: second call with better source must not be silently voided
-        if (!dup.source.split('').map(s => s.trim()).includes(source)) {
-          dup.source = `${dup.source}${source}`;
+        if (!dup.source.split('；').map(s => s.trim()).includes(source)) {
+          dup.source = `${dup.source}；${source}`;
         }
         dup.updatedAt = now();
       }
@@ -579,7 +579,7 @@ function cmdShow(args) {
   const m = read(root);
   const entries = flags.layer === undefined ? m.entries : m.entries.filter(e => e.layer === flags.layer);
   const byLayer = Object.fromEntries(LAYERS.map(l => [l, m.entries.filter(e => e.layer === l).length]));
-  return { path: memPath(root), total: m.entries.length, byLayer, working: m.working, entries, updatedAt: m.updatedAt };
+  return { path: memPath(root), total: m.entries.length, byLayer, working: m.working, entries, snapshots: m.snapshots || [], updatedAt: m.updatedAt };
 }
 
 // ——— working: L1 working memory ———
