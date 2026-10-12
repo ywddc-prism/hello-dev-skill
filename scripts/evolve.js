@@ -88,6 +88,9 @@ function emptyEvolve() {
     // maxElapsedMs is the **elapsed time** limit required by charter §4 (alongside candidate count, execution count).
     // startedAt is set on first evaluate persist (read-only commands like status/budget don't start the timer).
     budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null,
+      // Per-round candidate counter (charter §4: limits are per round). Counts candidates
+      // ADDED this round; reset zeroes it. Legacy stores without it read as 0.
+      candidatesThisRound: 0,
       maxElapsedMs: 15 * 60 * 1000, startedAt: null },
     evaluations: [],    // {candidateId, at, verdict, gates, evidence}
     createdAt: now(),
@@ -269,9 +272,11 @@ function cmdBudgetReset(args) {
   }
   return withLockRMW(root, (e) => {
     const before = { startedAt: e.budget.startedAt, used: e.budget.used,
-      stopped: e.budget.stopped, candidates: e.candidates.length };
+      stopped: e.budget.stopped, candidates: e.candidates.length,
+      candidatesThisRound: e.budget.candidatesThisRound || 0 };
     e.budget.startedAt = null;          // new round starts timing from zero
     e.budget.used = 0;                  // execution count quota reopened
+    e.budget.candidatesThisRound = 0;   // per-round candidate quota reopened (F1)
     e.budget.stopped = null;            // clear stopped
     // **Don't delete candidates/evaluations**: history must have trace, reset is quota not evidence.
     // Only append a reset record to candidates here, for audit trail of 'who reset when'.
@@ -281,7 +286,7 @@ function cmdBudgetReset(args) {
     write(root, e);
     return { reset: true, reason: String(reason), before, after: {
       startedAt: e.budget.startedAt, used: e.budget.used, stopped: e.budget.stopped,
-      candidates: e.candidates.length },
+      candidates: e.candidates.length, candidatesThisRound: e.budget.candidatesThisRound },
       note: 'quota reopened; candidates/evaluations history preserved (reset does not erase evidence)' };
   });
 }
@@ -292,7 +297,11 @@ function cmdBudget() {
   const b = e.budget;
   return {
     ...b,
-    remainingCandidates: Math.max(0, b.maxCandidates - e.candidates.length),
+    // Per-round view (F1): the quota counts candidates added THIS round, not lifetime store size.
+    // candidatesInStore shows the historical total for auditability.
+    candidatesThisRound: b.candidatesThisRound || 0,
+    candidatesInStore: e.candidates.length,
+    remainingCandidates: Math.max(0, b.maxCandidates - (b.candidatesThisRound || 0)),
     remainingEvaluations: Math.max(0, b.maxEvaluations - b.used),
     // Elapsed time dimension (charter §4 third dimension, M-6)
     maxElapsedMs: b.maxElapsedMs === undefined ? null : b.maxElapsedMs,
@@ -384,9 +393,7 @@ function cmdEvaluate(args) {
     } else {
       e.candidates.push({ id: evalRecord.id, path: abs, createdAt: now(), status: 'pending',
         evaluatedAt: now(), verdict: 'CANDIDATE_PENDING' });
-    }
-    if (e.candidates.length > e.budget.maxCandidates) {
-      e.budget.stopped = { at: now(), reason: `Candidate count reached limit ${e.budget.maxCandidates}` };
+      bumpCandidateRound(e, 1);
     }
     write(root, e);
 
@@ -422,8 +429,12 @@ function enforceBudget(e) {
     e.budget.stopped = { at: now(), reason: `Evaluation count reached limit ${e.budget.maxEvaluations}` };
     fail(`Budget stopped: ${e.budget.stopped.reason}`);
   }
-  if (e.candidates.length >= e.budget.maxCandidates) {
-    e.budget.stopped = { at: now(), reason: `Candidate count reached limit ${e.budget.maxCandidates}` };
+  // Per-round candidate quota (charter §4: "per round"). Counting the store's lifetime length
+  // here was the F1 defect: after 10 candidates ever, generation was permanently blocked and
+  // reset could not reopen it (this same check re-tripped). The counter is incremented by
+  // bumpCandidateRound at every candidate-creating path; reaching the limit stops the round.
+  if ((e.budget.candidatesThisRound || 0) >= e.budget.maxCandidates) {
+    e.budget.stopped = { at: now(), reason: `Candidate count reached limit ${e.budget.maxCandidates} (this round)` };
     fail(`Budget stopped: ${e.budget.stopped.reason}`);
   }
   // Elapsed time limit (charter §4 third dimension). startedAt set on **first evaluate**;
@@ -439,6 +450,17 @@ function enforceBudget(e) {
   }
 }
 
+// Per-round candidate counter (F1): every path that ADDS a candidate entry calls this with the
+// number actually persisted. Reaching the limit sets stopped so the next state-writing call
+// refuses -- "stop when reached" (charter §4). Reset zeroes the counter; history stays.
+function bumpCandidateRound(e, n) {
+  if (!n) return;
+  e.budget.candidatesThisRound = (e.budget.candidatesThisRound || 0) + n;
+  if (e.budget.candidatesThisRound >= e.budget.maxCandidates && !e.budget.stopped) {
+    e.budget.stopped = { at: now(), reason: `Candidate count reached limit ${e.budget.maxCandidates} (this round)` };
+  }
+}
+
 // **Only modify passed-in e, don't write yourself** — writing done uniformly by lock-holding caller,
 // otherwise nesting another read-modify-write inside lock would break 'complete read-modify-write inside lock' constraint.
 function recordReject(e, candPath, reason, gates) {
@@ -448,8 +470,11 @@ function recordReject(e, candPath, reason, gates) {
     at: now(), verdict: 'REJECTED', gates, evidence: { reason } });
   const existing = e.candidates.find(c => c.path === candPath);
   if (existing) { existing.status = 'rejected'; existing.reason = reason; existing.evaluatedAt = now(); existing.verdict = 'REJECTED'; }
-  else e.candidates.push({ id: 'ev-' + Date.now().toString(36), path: candPath, createdAt: now(),
-    status: 'rejected', reason, evaluatedAt: now(), verdict: 'REJECTED' });
+  else {
+    e.candidates.push({ id: 'ev-' + Date.now().toString(36), path: candPath, createdAt: now(),
+      status: 'rejected', reason, evaluatedAt: now(), verdict: 'REJECTED' });
+    bumpCandidateRound(e, 1);
+  }
 }
 
 // ——— reject: human records rejection reason ———
@@ -634,16 +659,32 @@ function cmdGenerate(args) {
     try { enforceBudget(e); }
     catch (err) { write(root, e); throw err; }
     // Merge generated candidates into candidates array (don't overwrite existing)
+    // F6: the return below must describe what was PERSISTED, not what was proposed --
+    // dedup-skipped proposals used to be counted in `generated`, so a caller could hold
+    // ids that do not exist in the store (returns derived from post-write truth).
+    // F1 strictness: the batch is capped at the round's REMAINING quota -- otherwise one
+    // generate call could overshoot `remainingCandidates` (the display must be a real promise).
+    // Deferred proposals are not lost: they are re-proposed by the next round's generate.
+    const addedCandidates = [];
+    let skippedDuplicates = 0;
+    let deferredByQuota = 0;
+    let remaining = e.budget.maxCandidates - (e.budget.candidatesThisRound || 0);
     for (const c of candidates) {
       const existing = e.candidates.find(x => x.target === c.target && x.type === c.type);
-      if (!existing) {
-        e.candidates.push({ ...c, path: `(generated)`, evaluatedAt: null, verdict: null, reason: null });
-      }
+      if (existing) { skippedDuplicates++; continue; }
+      if (remaining <= 0) { deferredByQuota++; continue; }
+      const row = { ...c, path: `(generated)`, evaluatedAt: null, verdict: null, reason: null };
+      e.candidates.push(row);
+      addedCandidates.push(row);
+      remaining--;
     }
+    bumpCandidateRound(e, addedCandidates.length);
     write(root, e);
     return {
-      generated: candidates.length,
-      candidates,
+      generated: addedCandidates.length,
+      skippedDuplicates,
+      deferredByQuota,
+      candidates: addedCandidates,
       diagnosis: diag.summary,
       note: 'candidates generated, use approve or reject-candidate to review individually',
     };
@@ -667,6 +708,12 @@ function cmdApprove(args) {
       fail(`Candidate touches forbidden zone, cannot approve: ${c.forbiddenReasons.join('; ')}`);
     }
 
+    // Budget gate (F2): dispositions are state-writing entry points like evaluate/reject
+    // (review C-4: a budget enforced at only some entry points is no budget). Persist the
+    // stop state before throwing -- same wrapping as cmdGenerate / cmdReject.
+    try { enforceBudget(e); } catch (err) { write(root, e); throw err; }
+    e.budget.used++;
+
     c.status = 'approved';
     c.approvedAt = now();
     c.approvalReason = reason;
@@ -688,6 +735,11 @@ function cmdRejectCandidate(args) {
     const c = e.candidates.find(x => x.id === candId);
     if (!c) fail(`Candidate not found: ${candId}`);
     if (c.status === 'rejected') fail(`Candidate already rejected: ${candId}`);
+
+    // Budget gate (F2): same as approve/evaluate/reject -- dispositions consume the round's
+    // execution quota and cannot run past a stop. Persist before throwing.
+    try { enforceBudget(e); } catch (err) { write(root, e); throw err; }
+    e.budget.used++;
 
     c.status = 'rejected';
     c.rejectedAt = now();

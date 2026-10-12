@@ -91,6 +91,9 @@ function validateBudget(budget) {
   if (budget.maxElapsedMs !== undefined && !nat(budget.maxElapsedMs)) {
     reasons.push('maxElapsedMs must be a non-negative integer (milliseconds)');
   }
+  if (budget.candidatesThisRound !== undefined && !nat(budget.candidatesThisRound)) {
+    reasons.push('candidatesThisRound must be a non-negative integer');
+  }
   if (budget.startedAt !== undefined && budget.startedAt !== null && !stamp(budget.startedAt)) {
     reasons.push('startedAt must be null or a valid timestamp');
   }

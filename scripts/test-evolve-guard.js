@@ -83,6 +83,9 @@ ok('blank stopped.reason -> reject', !guard.validateBudget({...validBudget, stop
 ok('negative maxElapsedMs -> reject', !guard.validateBudget({...validBudget, maxElapsedMs: -100}).ok);
 ok('invalid startedAt -> reject', !guard.validateBudget({...validBudget, startedAt: 'not-a-date'}).ok);
 ok('backward compatible: missing maxElapsedMs/startedAt not invalid', guard.validateBudget({...validBudget}).ok);
+ok('invalid candidatesThisRound -> reject', !guard.validateBudget({...validBudget, candidatesThisRound: 1.5}).ok);
+ok('negative candidatesThisRound -> reject', !guard.validateBudget({...validBudget, candidatesThisRound: -1}).ok);
+ok('backward compatible: missing candidatesThisRound not invalid', guard.validateBudget({...validBudget}).ok);
 
 // -- 5. validateCandidates --
 console.log('-- 5. validateCandidates valid and invalid --');

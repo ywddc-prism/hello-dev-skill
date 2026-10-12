@@ -856,9 +856,11 @@ try {
  }
 
  // -- 20. generate cannot bypass budget (same gate as evaluate/reject) --
-// **Real defect**: generate was the only state-writing entry point that never called
-// enforceBudget, so the repository reached 20 candidates against maxCandidates=10 while
-// budget still reported "not stopped". A budget enforced at only some entry points is no budget.
+// **Real defect (fixed)**: generate did not call enforceBudget, so the repository reached
+// 20 candidates against maxCandidates=10 while budget still reported "not stopped". A budget
+// enforced at only some entry points is no budget.
+// NOTE (2026-10-13 audit): the original "only entry point" claim was itself incomplete --
+// cmdApprove / cmdRejectCandidate had the same gap until the disposition-gating fix (section 22).
 console.log('-- 20. generate goes through same budget gate --');
 {
  // (1) Candidate count already at maxCandidates -> generate must refuse and must not add candidates
@@ -876,7 +878,9 @@ console.log('-- 20. generate goes through same budget gate --');
  status: 'generated', createdAt: new Date().toISOString(), evaluatedAt: null,
  verdict: null, reason: null }],
  evaluations: [],
- budget: { maxCandidates: 1, maxEvaluations: 10, used: 0, stopped: null },
+ // Per-round semantics (F1): the quota counts candidates added THIS round. Set the counter to
+ // the limit to express "round exhausted", independent of how many candidates the store holds.
+ budget: { maxCandidates: 1, maxEvaluations: 10, used: 0, stopped: null, candidatesThisRound: 1 },
  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
  }, null, 2));
  // The fixture must be able to produce at least one candidate, otherwise "no candidate added"
@@ -941,6 +945,158 @@ console.log('-- 20. generate goes through same budget gate --');
  JSON.stringify(readEvolve().candidates.length));
  ok(' -> no stop set', readEvolve().budget.stopped === null,
  JSON.stringify(readEvolve().budget.stopped));
+}
+
+ // -- 21. per-round candidate quota (F1: charter section 4 says limits are PER ROUND) --
+ console.log('-- 21. per-round candidate quota (F1) --');
+{
+ // (1) THE regression: 22 lifetime candidates must NOT block a fresh round. The old lifetime
+ // length check (22 >= 10) blocked generation permanently, and reset could not reopen it
+ // because the same check re-tripped on the store length.
+ project('round-quota');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'rq1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const legacy = [];
+ for (let i = 0; i < 22; i++) legacy.push({ id: 'legacy-' + i, path: '(generated)',
+ type: 'L4-update', target: 'unrelated-' + i, status: 'rejected',
+ createdAt: new Date().toISOString(), evaluatedAt: null, verdict: 'REJECTED', reason: 'x' });
+ const pq = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pq, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: legacy, evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gRound = json(['generate']);
+ ok('**fresh round with 22 lifetime candidates -> generate succeeds** (F1 regression)',
+ gRound.generated >= 1, JSON.stringify(gRound).slice(0, 200));
+ const evRound = readEvolve();
+ ok(' -> per-round counter advanced', evRound.budget.candidatesThisRound === 1,
+ String(evRound.budget.candidatesThisRound));
+ ok(' -> lifetime history preserved', evRound.candidates.length === 23,
+ String(evRound.candidates.length));
+ ok(' -> no stop set (round quota not exhausted)', evRound.budget.stopped === null,
+ JSON.stringify(evRound.budget.stopped));
+
+ // (2) Reaching the limit mid-round sets stopped at the boundary; the NEXT call refuses.
+ project('round-cap');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'rc1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pc = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pc, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null, candidatesThisRound: 9 },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gCap = json(['generate']);
+ ok('last quota unit -> generate still succeeds', gCap.generated === 1, JSON.stringify(gCap).slice(0, 160));
+ const evCap2 = readEvolve();
+ ok(' -> counter reached the limit', evCap2.budget.candidatesThisRound === 10,
+ String(evCap2.budget.candidatesThisRound));
+ ok(' -> stop recorded at the boundary', evCap2.budget.stopped !== null &&
+ /limit 10/.test(String(evCap2.budget.stopped.reason)), JSON.stringify(evCap2.budget.stopped));
+ const gCap2 = run('generate');
+ ok('next generate refused once exhausted', gCap2.code !== 0 && /Budget stopped/.test(gCap2.out),
+ gCap2.out.slice(0, 160));
+
+ // (2b) A single batch cannot overshoot the remaining quota: counter 8 + 5 signals -> only 2 added,
+ // the rest deferred (re-proposed by a later round); remainingCandidates stays a real promise.
+ project('round-batch-cap');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: ['b1', 'b2', 'b3', 'b4', 'b5'].map((id, i) => ({ id, layer: 'L4', content: 'process ' + i,
+ source: 's', tags: [], hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })),
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pb = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pb, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null, candidatesThisRound: 8 },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gBatch = json(['generate']);
+ ok('batch capped at remaining quota (2 of 5 added)', gBatch.generated === 2 && gBatch.deferredByQuota === 3,
+ JSON.stringify(gBatch).slice(0, 200));
+ ok(' -> counter exactly at the limit', readEvolve().budget.candidatesThisRound === 10,
+ String(readEvolve().budget.candidatesThisRound));
+ ok(' -> stop recorded', readEvolve().budget.stopped !== null, JSON.stringify(readEvolve().budget.stopped));
+
+ // (3) reset reopens the per-round candidate quota
+ const rReset = json(['reset', '--reason', 'test: reopen per-round quota']);
+ ok('reset zeroes the per-round counter', rReset.reset === true && rReset.after.candidatesThisRound === 0,
+ JSON.stringify(rReset).slice(0, 200));
+ ok(' -> reset recorded the per-round counter before/after',
+ rReset.before.candidatesThisRound === 10, JSON.stringify(rReset.before));
+ const gAfterReset = run('generate');
+ ok('generate after reset does not fail', gAfterReset.code === 0, gAfterReset.out.slice(0, 160));
+ const budView = json(['budget']);
+ ok(' -> budget display reports per-round view',
+ typeof budView.candidatesThisRound === 'number' && typeof budView.candidatesInStore === 'number',
+ JSON.stringify(budView).slice(0, 160));
+}
+
+ // -- 22. dispositions go through the budget gate (F2) --
+ // cmdApprove / cmdRejectCandidate were the two remaining state-writing entry points outside
+ // the budget (found by enumerating ALL write(root) sites in the 2026-10-13 audit; the
+ // section-20 comment's "only entry point" claim was itself incomplete).
+ console.log('-- 22. approve / reject-candidate go through same budget gate (F2) --');
+{
+ const dispFixture = (name, budget) => {
+ project(name);
+ const p = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(p, JSON.stringify({
+ schema: 1, mode: 'observe',
+ candidates: [
+ { id: 'd-appr', path: '(generated)', type: 'L4-update', target: 't-a', status: 'generated',
+ createdAt: new Date().toISOString(), evaluatedAt: null, verdict: null, reason: null },
+ { id: 'd-rej', path: '(generated)', type: 'L4-update', target: 't-b', status: 'generated',
+ createdAt: new Date().toISOString(), evaluatedAt: null, verdict: null, reason: null }],
+ evaluations: [], budget,
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ };
+
+ // (1) stop set -> both dispositions refused; nothing mutated; stop survives
+ dispFixture('disp-stopped', { maxCandidates: 10, maxEvaluations: 20, used: 0,
+ stopped: { at: new Date().toISOString(), reason: 'test stop' } });
+ const rApprStopped = run('approve', '--candidate', 'd-appr', '--reason', 'r');
+ ok('approve refused when stopped', rApprStopped.code !== 0 && /Budget stopped/.test(rApprStopped.out),
+ rApprStopped.out.slice(0, 160));
+ const rRejStopped = run('reject-candidate', '--candidate', 'd-rej', '--reason', 'r');
+ ok('reject-candidate refused when stopped', rRejStopped.code !== 0 && /Budget stopped/.test(rRejStopped.out),
+ rRejStopped.out.slice(0, 160));
+ const evD1 = readEvolve();
+ ok(' -> statuses unmutated by refused calls',
+ evD1.candidates.every(c => c.status === 'generated'), JSON.stringify(evD1.candidates.map(c => c.status)));
+ ok(' -> used not consumed by refused calls', evD1.budget.used === 0, String(evD1.budget.used));
+
+ // (2) budget available -> both succeed and consume the execution quota
+ dispFixture('disp-ok', { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null });
+ const okAppr = json(['approve', '--candidate', 'd-appr', '--reason', 'test approval']);
+ ok('approve succeeds under budget', okAppr.status === 'approved', JSON.stringify(okAppr).slice(0, 160));
+ const okRej = json(['reject-candidate', '--candidate', 'd-rej', '--reason', 'test rejection']);
+ ok('reject-candidate succeeds under budget', okRej.status === 'rejected', JSON.stringify(okRej).slice(0, 160));
+ const evD2 = readEvolve();
+ ok(' -> used counts both dispositions', evD2.budget.used === 2, String(evD2.budget.used));
+ ok(' -> dispositions create no candidates (counter untouched)',
+ (evD2.budget.candidatesThisRound || 0) === 0, String(evD2.budget.candidatesThisRound));
+
+ // (3) execution quota reached -> refuse (independent trigger, mirrors section 4's second gate)
+ dispFixture('disp-cap', { maxCandidates: 10, maxEvaluations: 2, used: 2, stopped: null });
+ const rApprCap = run('approve', '--candidate', 'd-appr', '--reason', 'r');
+ ok('approve refused when evaluation quota reached',
+ rApprCap.code !== 0 && /limit 2/.test(rApprCap.out), rApprCap.out.slice(0, 160));
+ const evD3 = readEvolve();
+ ok(' -> stop persisted from the refused disposition',
+ evD3.budget.stopped !== null && /limit 2/.test(String(evD3.budget.stopped.reason)),
+ JSON.stringify(evD3.budget.stopped));
 }
 
 console.log(`\n=== evolve.js: ${pass} passed / ${failN} failed ===`);
