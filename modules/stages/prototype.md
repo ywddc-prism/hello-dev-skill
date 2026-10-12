@@ -12,6 +12,7 @@
 3. **Questioning follows the `grill-me` discipline.** Model the decisions as a tree; walk branches in dependency order; resolve one branch to completion before opening the next; answer codebase-resolvable facts yourself with Read/Grep instead of spending a user turn.
 4. **Silence, timeout, and tool unavailability are not consent.** If a decision cannot be settled, record it as pending and keep it in the round's unresolved list — do not silently pick a value.
 5. **The user experiences, not reads.** Every round serves a runnable HTML prototype via `present_files` (or localhost preview); feedback from the experience drives the next round.
+6. **Stop condition — un-splittable closure.** Decisions are resolved down to un-splittable granularity: no smaller independent decision remains, no sub-decision stays open, and no "it depends" survives. Do not stop early to spare the user; every question must materially change the design or its verification, and resolved items leave no placeholders.
 
 ## Teaching Goal
 
@@ -196,13 +197,14 @@ The prototype does NOT need to be:
 The stage completes when ALL of the following are true:
 - All UX concern decisions have been approved (or resolved through iteration)
 - All UI concern decisions have been approved (or resolved through iteration)
+- All decisions are resolved to **un-splittable granularity** (no smaller independent decision remains; no open sub-decisions; no "it depends")
 - **The user explicitly confirms satisfaction with the final prototype** (user satisfaction is the sole convergence criterion — there is no round limit)
 - All pending modification requests have been applied and verified
 - Design tokens and component specs have been extracted from the prototype
 
 ### Iteration Policy
 
-**No round limit.** The iteration loop runs until the user explicitly confirms satisfaction. The agent must not impose a round cap, invoke a binding tie-breaker, or treat silence / timeout as approval. If the user indicates dissatisfaction at any point, another iteration is required.
+**No round limit.** The iteration loop runs until the user explicitly confirms satisfaction. The agent must not impose a round cap, invoke a binding tie-breaker, or treat silence / timeout as approval. If the user indicates dissatisfaction at any point, another iteration is required. The absence of a round limit does not lower the decision standard: decisions still resolve to un-splittable granularity (see Hard Rule item 6).
 
 The agent may, at its own discretion, provide a progress summary (unresolved points, recommendation, cost estimate) when iterations are many — but such a summary is **informational only** and does not constitute a termination condition. The user decides whether to continue or accept the current state.
 
@@ -252,6 +254,7 @@ node scripts/state.js stage prototype completed
 | Final prototype verified | User confirmed the last prototype represents the intended design |
 | All modifications applied | Every pending modification request has been applied and verified |
 | Specifications extracted | UX spec, UI spec, design tokens, and component specs derived from the prototype |
+| Decisions un-splittable | Every UX and UI decision cannot be decomposed further; no open sub-decisions remain |
 | User satisfaction | User explicitly confirmed the prototype is satisfactory |
 
 ---

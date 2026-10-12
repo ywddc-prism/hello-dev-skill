@@ -134,6 +134,13 @@ try {
  assert.equal(state().retry.total, 3);
  ok('module', 'storage', 'submitted');
  ok('module', 'storage', 'approved', '--reason', 'User approved revised storage design');
+ // Research-to-architecture gate: tool-research completed earlier in this fixture, so
+ // completing architecture now requires the research key-point checkpoint. The rejection
+ // must name the checkpoint, and recording it must open the gate.
+ no('stage', 'architecture', 'completed');
+ assert.match(run('stage', 'architecture', 'completed').out, /Research key points confirmed/,
+ 'the gate must name the missing key-point checkpoint'); checks++;
+ cp('Research key points confirmed');
  ok('stage', 'architecture', 'completed');
  ok('stage', 'prototype', 'in_progress');
  cp('Prototype converged');
@@ -147,6 +154,20 @@ try {
  ok('stage', 'tool-research', 'completed');
  ok('stage', 'feature-design', 'in_progress');
  no('stage', 'feature-design', 'completed');
+
+ // Skip-aware gate: when tool-research is skipped it is out of the route entirely, so
+ // completing architecture does not require the research key-point checkpoint -- there
+ // is nothing to confirm, and a vacuous record would be ceremony.
+ project('arch-skip-research', 'design'); beginRequirement(); confirm();
+ ok('skip', 'tool-research', '--reason', 'User approved: skip tool-research, no open development questions remain for this fixture');
+ ok('stage', 'feature-design', 'in_progress');
+ ok('module', 'fd-skip', 'submitted');
+ ok('module', 'fd-skip', 'approved', '--reason', 'User approved the feature design for the skip-aware fixture');
+ ok('stage', 'feature-design', 'completed');
+ ok('stage', 'architecture', 'in_progress');
+ ok('module', 'arch-skip', 'submitted');
+ ok('module', 'arch-skip', 'approved', '--reason', 'User approved the architecture decision for the skip-aware fixture');
+ ok('stage', 'architecture', 'completed');
 
  project('legacy', 'design'); beginRequirement(); confirm();
  ok('stage', 'tool-research', 'in_progress'); ok('stage', 'tool-research', 'completed');

@@ -389,7 +389,7 @@ function completionAllowed(s, name) {
   const current = s.checkpoints.slice(s.stage.checkpointStart || 0).filter(c => c.stage === name);
   const latest = new Map(current.map(c => [c.name, c]));
   if ([...latest.values()].some(c => c.result !== 'pass')) fail('Current stage still has unpassed checkpoints');
-  const required = {
+  let required = {
     // Initialization produces the scope survey and the COARSE plan. Both are its own
     // evidence, distinct from requirement's `Requirement confirmed` / `Decomposition plan`.
     initialization: ['Scope survey', 'Coarse decomposition plan'],
@@ -399,6 +399,15 @@ function completionAllowed(s, name) {
     prototype: ['Prototype converged', 'Specifications extracted'],
     requirement: ['Requirement confirmed', 'Decomposition plan'], testing: 'Testing', review: 'Review',
     learn: 'Learning summary', evolution: 'Evolution report', reflection: 'Agent reflection', archive: 'Archive complete' }[name];
+  // Research-to-architecture gate (skip-aware): the architecture stage cannot complete
+  // until the key points produced by Tool Research have been confirmed with the user and
+  // recorded as a checkpoint in this round. When the user approved skipping tool-research,
+  // the stage is out of the route entirely, so there are no key points to confirm --
+  // requiring a vacuous record would be ceremony, not evidence.
+  // See modules/stages/architecture.md (Hard Rule item 7) and state-protocol.md.
+  if (name === 'architecture' && route(s).includes('tool-research')) {
+    required = ['Research key points confirmed'];
+  }
   if (required) {
     const reqs = Array.isArray(required) ? required : [required];
     // The lower floor applies to the post-delivery retrospective stages on the `fast` path

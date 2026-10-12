@@ -461,13 +461,14 @@ Please help me refactor the authentication module. Current code has high couplin
 
 #### 4. Tool Research — full path only
 
-**Responsibility**: Research technical solutions, evaluate technical risks.
+**Responsibility**: Research the development approach (technology route, effectiveness monitoring) and the open-source ecosystem; evaluate technical risks.
 
 **Deliverables**:
 - Technical solution comparison
 - Technical risk assessment
+- Research key points (confirmed one by one at the Architecture stage)
 
-**User Action**: Select technical solution
+**User Action**: Review the research findings; the key points are confirmed one by one at the Architecture stage
 
 #### 5. Feature Design — full path only
 
@@ -487,8 +488,9 @@ Please help me refactor the authentication module. Current code has high couplin
 - Architecture spec document
 - Interface definitions
 - Dependency graph
+- Research key points confirmed with the user, one by one (checkpoint `Research key points confirmed`)
 
-**User Action**: Confirm architecture design
+**User Action**: Confirm architecture design, including the research key points one by one
 
 #### 7. Prototype — full path only
 

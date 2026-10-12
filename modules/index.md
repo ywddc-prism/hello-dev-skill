@@ -52,7 +52,7 @@
 | [stages/stage-9-3-archive.md](stages/stage-9-3-archive.md) | Stage: Archive - Loop Archive | Mandatory final stage. Permanent storage + Search optimizati... |
 | [stages/stage-9-learn.md](stages/stage-9-learn.md) | Stage: Learn - Instant Learning System | Mandatory stage after Ship. Embedded learning moments throug... |
 | [stages/testing.md](stages/testing.md) | Stage 6: Testing - Layered Verification | Test conclusions must come from actual execution; inapplicab... |
-| [stages/tool-research.md](stages/tool-research.md) | Stage: Tool Research - Open Source Framework and Tool Research | Mandatory stage in the design/full execution path. Positione... |
+| [stages/tool-research.md](stages/tool-research.md) | Stage: Tool Research - Development Research | Mandatory stage in the full 15-stage chain. Positioned betwe... |
 | [stages/ui-design.md](stages/ui-design.md) | Stage: UI Design - Visual Design & Design System | Historical stage document (superseded). This file described... |
 | [stages/ux-design.md](stages/ux-design.md) | Stage: UX Design - Interaction Design & User Experience | Historical stage document (superseded). This file described... |
 

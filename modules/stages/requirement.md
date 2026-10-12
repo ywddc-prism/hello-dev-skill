@@ -9,6 +9,10 @@
 Based on existing information, describe: problem, target users, core requirements, success criteria, constraints, and exclusions.
 If information is already clear, do not re-ask; if there are key knowledge gaps, explain the original problem, causal mechanism, and cost; ask only one question that determines implementation direction at a time.
 
+### Development Research Questions
+
+When the task involves development and has open approach questions — technology route / framework choices, effectiveness monitoring, or other questions that shape how it will be built — list them here. They are the input for the [Tool Research](tool-research.md) stage, and each becomes a **key point** confirmed with the user at the [Architecture](architecture.md) stage. Do not silently assume answers to them; a skip proposal for Tool Research must account for the open questions.
+
 ### Questioning Discipline: `grill-me`
 
 This stage's questioning follows the `grill-me` method. It raises the *depth* of confirmation; it does not relax any rule above.
@@ -18,9 +22,9 @@ This stage's questioning follows the `grill-me` method. It raises the *depth* of
 3. **Give a recommended answer before each question.** State your recommendation and the reasoning, then ask. The user confirms, corrects, or rejects; they are not asked to invent an answer from nothing.
 4. **Answer facts yourself.** If a question can be resolved by reading the codebase, specs, or configuration, resolve it with Read/Grep instead of spending a user turn.
 5. **One question at a time.** Wait for a real reply before the next question. This is what separates the discipline from a questionnaire: depth comes from branch-by-branch traversal, not from batching.
-6. **Stop condition.** The session ends when all branches are resolved and no "it depends" answers remain. Close with a one-paragraph summary of the decisions actually made.
+6. **Stop condition — un-splittable closure.** The session ends only when every branch is resolved down to un-splittable granularity: no smaller independent decision remains, no sub-decision stays open, and no "it depends" answer survives. Do not stop early to spare the user; every question must materially change the implementation or its verification, and resolved items leave no placeholders. Close with a one-paragraph summary of the decisions actually made.
 
-**Reconciliation with the anti-questionnaire rule** (this stage's header, and the `feedback/user-feedback.md` precedent that a 30-point form collected zero data): the rule forbids **forms** — long batched checklists the user must fill in. It does not forbid **depth**. Asking one well-founded question at a time, each with a recommended answer, and traversing a decision tree until it converges is the opposite of a form. Batching many questions into one turn to finish faster is still forbidden.
+**Reconciliation with the anti-questionnaire rule** (this stage's header, and the `feedback/user-feedback.md` precedent that a 30-point form collected zero data): the rule forbids **forms** — long batched checklists the user must fill in. It does not forbid **depth**. Asking one well-founded question at a time, each with a recommended answer, and traversing a decision tree until it converges is the opposite of a form. Batching many questions into one turn to finish faster is still forbidden — and so is stopping early to spare the user: closure, not the user's patience, is the stop condition (item 6).
 
 ## Confirmation Method
 

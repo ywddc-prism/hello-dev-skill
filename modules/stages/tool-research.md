@@ -1,83 +1,72 @@
-> Mandatory stage in the `design/full` execution path. Positioned between Requirement and Feature Design.
-> Position in shorter paths: skipped (along with feature-design and architecture), as its purpose (open-source framework and tool research) is only needed when architecture decisions are pending.
+> Mandatory stage in the full 15-stage chain. Positioned between Requirement and Feature Design; skippable only via a recorded, user-approved `state.js skip` — a skip proposal must account for the open development questions listed by the Requirement stage.
+>
+> Purpose: research the development approach before design — technology routes, effectiveness monitoring, and the open-source ecosystem — and hand the open questions to the Architecture stage as **key points**.
 
-# Stage: Tool Research - Open Source Framework and Tool Research
+# Stage: Tool Research - Development Research
 
 ## Teaching Goal
 
-Before designing features and architecture, we need to understand **what already exists in the open-source ecosystem**.
+Before designing features and architecture, we need to understand **how this should be developed**: the technology route and its trade-offs, how the result's effectiveness will be monitored, and what the open-source ecosystem already offers.
 
 This is a research-first process:
-1. Search for existing open-source frameworks, libraries, tools, and reference projects
-2. Evaluate which options fit the problem domain, constraints, and quality bar
-3. You choose which to adopt, adapt, or build yourself
 
-**Our principle: survey the ecosystem before you design around what you already have. Tool Research is not for re-validating the project's existing tools; it is for discovering what the open-source world already offers.**
+1. Research the development approach: technology routes and framework choices, effectiveness monitoring / evaluation, and the surrounding ecosystem
+2. Evaluate the options against the problem domain, constraints, and quality bar — every fact with a source
+3. Produce findings plus **key points** — the decision points that are confirmed with the user at the Architecture stage
+
+**Our principle: research the development approach before you design around assumptions. Tool Research is not for re-validating the project's existing tools; it is for discovering the routes and options that are actually available.**
+
+**Input**: the development questions listed at the [Requirement](requirement.md) stage. **Output**: findings and key points (below).
 
 ---
 
-## Research Tasks
+## Research Scope (required coverage)
 
-I need to search the open-source ecosystem, not re-validate what the project already uses.
+When a category below is applicable to the task, it must not be omitted. Add task-specific questions as needed.
 
-### 1. Frameworks and Core Libraries
+### 1. Technology Route and Framework Choices
+
+Identify the candidate approach(es) and their trade-offs for this task. Example (agent development): an orchestration framework (e.g. LangGraph) vs. a lighter library vs. self-built — with evidence on maturity, maintenance, license, and fit.
 
 ```
 Search keywords:
 - "[domain] framework github"
 - "[domain] open source framework comparison"
-- "[library1] vs [library2] vs [library3] 2025"
-- "best [stack] frameworks 2025"
+- "[library1] vs [library2] vs [library3]"
+- "build vs buy [capability]"
 ```
 
-### 2. Data and Integration Layer
+### 2. Effectiveness Monitoring / Evaluation
 
-```
-Search keywords:
-- "[domain] data API github"
-- "[domain] open source API library"
-- "[provider] SDK documentation"
-```
+Research how the result's effectiveness will be verified and monitored, and which options fit. Example (agent development): tracing, evaluation harnesses, metrics, human-in-the-loop review. Do not assume an approach — present the candidates.
 
-### 3. Frontend / Tooling / Components
+### 3. Ecosystem and Reference Implementations
+
+Survey what already exists in the open-source ecosystem: frameworks, libraries, tools, data/integration layers, frontend tooling, and reference projects.
 
 ```
 Search keywords:
-- "[stack] [component] library github"
-- "[stack] [capability] tooling"
+- "[domain] data API github", "[provider] SDK documentation"
+- "[stack] [component] library github", "[stack] [capability] tooling"
+- "[domain] reference implementation github", "awesome [domain]"
 - "[domain] dashboard / admin / editor reference projects"
-```
-
-### 4. Reference Projects
-
-```
-Search keywords:
-- "[domain] reference implementation github"
-- "[domain] open source system"
-- "awesome [domain]"
 ```
 
 ---
 
 ## Research Results Presentation
 
-After completing the search, I will compile in the following format:
-
-## Research Results Presentation
-
-After completing the search, I will compile in the following format:
+After completing the research, compile the results — every fact carries a source.
 
 ### Open-Source Options Comparison Table
 
-| Category | Tool / Framework | Stars | Positioning | Pros | Cons | Applicable Scenario |
-|----------|------------------|-------|-------------|------|------|---------------------|
-| Framework | [Name] | 14k | [positioning] | [pro] | [con] | [scenario] |
-| Data layer | [Library] | 14k | [positioning] | [pro] | [con] | [scenario] |
-| Tooling | [Tool] | - | [positioning] | [pro] | [con] | [scenario] |
+| Category | Tool / Framework | Stars | Positioning | Pros | Cons | Applicable Scenario | Source |
+|----------|------------------|-------|-------------|------|------|---------------------|--------|
+| Framework | [Name] | 14k | [positioning] | [pro] | [con] | [scenario] | [link / version] |
 
 ### Recommended Solution Combinations
 
-Based on your needs, I may recommend several combinations:
+Where useful, present combinations as inputs to the key points below:
 
 **Solution A: Lightweight (Quick Launch)**
 ```
@@ -104,42 +93,35 @@ Features: Most professional, but higher cost
 
 ---
 
-## Your Choice
+## Key Points
 
-**Please tell me:**
+Every research output ends with a **Key Points** list — one entry per decision point:
 
-1. **Which solution do you prefer?** (A / B / C / Mixed / Other)
-2. **Any specific frameworks or tools you want to use?** (even if not on the list)
-3. **Any technologies you must avoid?** (unfamiliar, disliked, incompatible license)
+| Field | Content |
+|-------|---------|
+| Decision question | What must be decided (e.g. "use LangGraph or not") |
+| Options | Candidate choices, with trade-offs |
+| Recommendation | The recommended option, with reasoning |
+| Evidence | Sources / measurements supporting it |
+
+**This stage does not make these decisions.** Key points are confirmed with the user one at a time at the [Architecture](architecture.md) stage, where the confirmation is recorded as evidence. Findings and key points are presented in this stage; constraints or preferences the user volunteers here are recorded as inputs to the architecture discussion.
 
 ---
 
-## Record Decision
+## Record
 
-Your choice will be recorded:
+Record the research for the task — findings and key points — in the conversation, and in the project's design notes when useful:
 
 ```markdown
-## Tool Research Results
+## Development Research Results
 
-**Research Time**: [date]
+**Research time**: [date]
 
-### Researched Tools
+### Findings
 
-| Category | Tool / Framework | Stars | Research Conclusion |
-|----------|------------------|-------|---------------------|
-| Framework | [Name] | 14k | Recommended for core stack |
-| Data layer | [Library] | 14k | Suitable for backend service |
-| Data layer | [API] | - | Can use directly, with some risk |
+[comparison table and notes, each fact with a source]
 
-### Solution Selection
+### Key Points
 
-> "[Your original words]"
-
-**Selected Solution**: [solution name]
-**Reason**: [why this choice]
-**Backup Plan**: [what to use if this doesn't work]
+[the key point list above]
 ```
-
----
-
-**After your search results come out, I will show the full open-source comparison and wait for your choice.**

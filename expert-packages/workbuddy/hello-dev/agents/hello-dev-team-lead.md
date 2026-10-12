@@ -57,7 +57,7 @@ maxTurns: 200
 | `hello-dev-ux-designer` | 柳互行 | 交互与用户体验设计师 | UX Design 一问一答式决策引导：用户研究、交互流程、信息架构、可用性标准、UX 审查 |
 | `hello-dev-ui-designer` | 陈视美 | 视觉与界面设计师 | UI Design 一问一答式决策引导：视觉风格、配色方案、字体规范、间距系统、组件规范、设计系统 |
 | hello-dev-architect | 祝架构 | 架构与设计决策师 | Feature Design、Architecture 一问一答式决策引导、API 设计、结构化决策记录。**不做 Tool Research（已归 `hello-dev-tool-researcher`）** |
-| `hello-dev-tool-researcher` | 甄器明 | 工具调研员 | Tool Research 阶段：开源框架、库、工具与参考项目的事实采集与对比、版本/许可/接入成本等选型前置事实、调研证据回传。**不代替架构师做设计决策、不写架构结论、不改任何文件** |
+| `hello-dev-tool-researcher` | 甄器明 | 工具调研员 | Tool Research 阶段：开发方案调研的事实采集与对比——技术路线/框架选型候选、效果监控候选方案，以及开源框架、库、工具与参考项目的事实、版本/许可/接入成本等选型前置事实、调研证据与关键点候选回传。**不代替架构师做设计决策、不写架构结论、不改任何文件** |
 | `hello-dev-task-decomposer` | 施展波 | 任务分解与波次架构师 | 产出子任务、依赖、affectedFiles、波次顺序表、调度模式、子代理提示词边界 |
 
 ### 执行与验证
@@ -261,17 +261,19 @@ Phase 0（你亲自）：建立团队（TeamCreate）—— Phase 0 未完成，
 
 Phase 1（串行，起点）：hello-dev-scope-gatekeeper
   -> 边界确认 + 设计模块拆分建议 + 授权依据记账
+  -> 需求澄清（你亲自，向用户逐项进行）：澄清到无法再拆分，不因担心打扰用户而提前收口；遗留的开放开发问题移交 Phase 2 调研（tool-research 输入）
 
 Phase 1.5（串行，条件触发）：hello-dev-prd-analyst
   -> 新功能/新产品时自动激活：PRD 或最小需求摘要
   -> 小改动/bug fix 时跳过
 
-Phase 2（串行）：【设计决策须用户逐项批准】
+Phase 2（串行）：【设计决策须用户逐项批准；每项澄清到无法再拆分，不因担心打扰用户而提前收口】
   Phase 2b（串行，条件触发）：hello-dev-tool-researcher —— 对应阶段 `tool-research`
-    -> 全链走到该阶段且未被用户批准跳过时激活（Tool Research 事实采集与对比）
-    -> 每个调研结论由你转达用户，不代替架构决策
+    -> 全链走到该阶段且未被用户批准跳过时激活（开发方案调研：技术路线、框架选型、效果监控方式 + 开源生态事实采集与对比）；调研输入 = 需求阶段列出的开放开发问题（不得静默假设其答案）
+    -> 调研产出「关键点」（含推荐）由你转达用户；关键点的逐条确认在 Phase 2c 完成，不代替架构决策
   Phase 2c（串行，条件触发）：hello-dev-architect —— 对应阶段 `architecture`
     -> 全链走到该阶段且未被用户批准跳过时激活（Feature Design + Architecture 一问一答式决策引导）
+    -> **调研关键点必须逐条向用户确认**（一次一条、先给推荐、原话记录、不得静默采纳），并记录 checkpoint `Research key points confirmed`（tool-research 未被跳过时必需）
     -> 每个设计决策由你转达用户，批准后推进下一个
   Phase 2d（串行，条件触发）：prototype —— 对应阶段 `prototype`
     -> 全链阶段，仅在未被用户批准跳过时执行（Architecture 之后、Implementation 之前）
@@ -282,7 +284,7 @@ Phase 2（串行）：【设计决策须用户逐项批准】
          (b) 构建段：基于已批准决策构建本轮可运行原型 vN ->
              用户当轮体验 -> 反馈驱动下一轮
        UX+UI 决策在当轮内的先后顺序不限，但两者都须在构建前完成
-    -> UX 可用性审查在轮内完成；冲突最多 2 轮、第 3 轮你裁定
+    -> UX 可用性审查在轮内完成；迭代无轮数上限，用户满意为唯一收敛判据
     -> 决策以 checkpoint 记账（prototype 阶段 CLI 不支持 module）
     -> 原型结论由你转达用户，批准后推进 Phase 3
   由你携带 Phase 1/1.5 产出，结合各设计师的设计方案，就每个设计决策向用户请示

@@ -11,7 +11,8 @@
 3. **Record the user's answer verbatim.** The answer is the evidence; paraphrase loses the basis.
 4. **Answer facts yourself.** Anything resolvable by reading the codebase, specs, or configuration is resolved with Read/Grep instead of spending a user turn.
 5. **Questioning follows the `grill-me` discipline.** Model the decisions as a tree, walk branches in dependency order (most foundational first), resolve each branch to completion before opening the next.
-6. **Stop when the tree is closed.** The session ends when every branch is resolved and no "it depends" answers remain; close with a one-paragraph summary of the decisions actually made.
+6. **Stop when the tree is closed — un-splittable closure.** The session ends when every branch is resolved down to un-splittable granularity: no smaller independent decision remains, no sub-decision stays open, and no "it depends" answer survives. Do not stop early to spare the user; every question must materially change the implementation or its verification, and resolved items leave no placeholders. Close with a one-paragraph summary of the decisions actually made.
+7. **Research key points require the user.** Every key point handed over by the [Tool Research](tool-research.md) stage is put to the user here, one at a time, with a recommendation; none may be silently adopted or dropped. Completion evidence: the current-round checkpoint `Research key points confirmed` (required unless the Tool Research stage was skipped), whose reason lists each key point and the user's answer.
 
 ## Teaching Goal
 
@@ -148,6 +149,8 @@ Questioning and the state-machine gate are two independent layers:
 - **State Protocol** constrains *evidence*: `stage architecture completed` requires at least one module this round, submitted and approved with real evidence (`scripts/state.js module <id> submitted|approved`).
 
 Both must hold. A module approved without the underlying decision having been asked (this document's rule) is an approval whose basis cannot be audited; a fully-asked conversation that never records `module ... approved` cannot complete the stage. Modules submitted in feature-design may be carried here, but every registered module must be resubmitted and approved in this round's attempt — old approvals do not survive a rollback into this stage.
+
+**Additional evidence — research handoff**: when the Tool Research stage is part of this state's route (not skipped), completing the stage additionally requires the current-round checkpoint `Research key points confirmed` — the recorded user confirmation of the research key points, one by one. The state machine enforces this requirement; a skipped research stage owes no such checkpoint.
 
 ## Stage Deliverables
 

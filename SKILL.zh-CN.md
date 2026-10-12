@@ -60,7 +60,7 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 ## 执行契约
 
 1. **先确认边界**:只读检查可直接执行;修改前,确认问题、范围、成功标准和排除项。不要重复询问已确认的内容。
-2. **先理解关键因果**:存在知识缺口时,解释机制和权衡;每次只问一个关键问题;不要在每一步都强制教学。
+2. **先理解关键因果**:存在知识缺口时,解释机制和权衡;每次只问一个关键问题;不要在每一步都强制教学。对话仅在所有分支都澄清到**不可再拆分**时结束——不存在更小的独立决策、无未决子项、无「看情况」式回答;不因担心打扰用户而提前收口。
 3. **明确例外**:如果用户说"直接做/你决定/别问"或提供了完全无风险的交接,可以跳过提问但不能跳过阶段、日志、测试或评审。记录实际的授权依据。
 4. **精确记账**:只记录实际完成的操作、审批和证据;不要将超时、无回复、注释或工具不可用视为审批。
 5. **最小授权**:任务确认不等于授权提交、推送、部署、删除文件或同步安装副本。Git 变更根据风险协议单独确认。
@@ -121,7 +121,7 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 |------|----------|----------|
 | Bootstrap | 当前状态、范围、相关文档、执行路径 | [bootstrap](modules/stages/bootstrap.md) |
 | Requirement | 用户确认或明确执行授权的依据 | [requirement](modules/stages/requirement.md) |
-| Feature Design / Architecture | 本轮模块已提交 -> 已批准,有实际证据 | [architecture](modules/stages/architecture.md) |
+| Feature Design / Architecture | 本轮模块已提交 -> 已批准,有实际证据;调研关键点已逐条向用户确认(调研阶段未被跳过时) | [architecture](modules/stages/architecture.md) |
 | Implementation | 范围变更和即时追加日志 | [implementation](modules/stages/implementation.md) |
 | Testing | 适用的四层验证证据和 `test` 通过 | [testing](modules/stages/testing.md) |
 | Review | 需求/实现/文档一致性评审和 `review` 通过 | [review](modules/stages/review.md) |
