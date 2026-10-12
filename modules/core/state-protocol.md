@@ -6,19 +6,21 @@
 
 ## Execution Paths and Transitions
 
-- `design/full`: bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive.
-- `implementation`, `other`, or `fast`: bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive.
-- Pure read-only consultation does not need init; `other` path is for confirmed tasks requiring persistence.
-- Learn, Evolution, Reflection, and Archive are mandatory on every state-bearing path (`design/full`, `implementation`, `other`, `fast`); none of them may be skipped, and any document that permits skipping them contradicts `scripts/lib/stages.js`, which is the single source for the stage list.
-- `init` creates bootstrap/in_progress. After completing the current stage, you must explicitly enter the in_progress of the immediately next stage; no auto-completion or arbitrary jumping.
-- Fast path reduces design, not requirement confirmation, Testing, or Review. For design/documentation tasks, Testing verifies documentation and examples, not irrelevant UI.
+- There is exactly one execution path: bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive.
+- Design-stage reduction happens only through a recorded, user-approved skip (`state.js skip <stage> --reason "..."`), never through a second declared chain. The former `--path fast` / `implementation`-filter routes are retired: `init` no longer accepts `--path`, and every task starts on the full chain.
+- Pure read-only consultation does not need init; `other` task type is for confirmed tasks requiring persistence.
+- Learn, Evolution, Reflection, and Archive are mandatory on every state-bearing path; none of them may be skipped, and any document that permits skipping them contradicts `scripts/lib/stages.js`, which is the single source for the stage list.
+- `init` creates bootstrap/in_progress. After completing the current stage, you must explicitly enter the in_progress of the immediately next stage; no auto-completion or arbitrary jumping. A skipped stage is removed from the route: the next stage advances to the first non-skipped one.
+- The full chain does not reduce requirement confirmation, Testing, or Review. For design/documentation tasks, Testing verifies documentation and examples, not irrelevant UI.
 
 ```bash
-node scripts/state.js init --name "Task name" --type implementation --path full
+node scripts/state.js init --name "Task name" --type implementation
 node scripts/state.js stage bootstrap completed
 node scripts/state.js stage requirement in_progress
 node scripts/state.js checkpoint "Requirement confirmed" pass --reason "User confirmation message and scope, quoted verbatim from the approval"
 node scripts/state.js stage requirement completed
+# Design stage unnecessary? Propose at the stage boundary, then record the approval:
+node scripts/state.js skip tool-research --reason "User approved: skip tool-research, stack already fixed, nothing to research"
 node scripts/state.js stage implementation in_progress
 ```
 
@@ -26,7 +28,7 @@ node scripts/state.js stage implementation in_progress
 
 | Stage | Required Evidence |
 |------|----------|
-| All stages | Not blocked, not exceeding retry limits; latest result for each checkpoint this round is pass. **Additionally, every REQUIRED checkpoint (the named stages below) must carry a `--reason` at or above the floor in `scripts/state.js`** (`REQUIRED_REASON_MIN`, lowered to `LITE_REASON_MIN` for the four post-delivery stages on the `fast` path -- see the path-dependent floor note below) -- the gate fails the completion if it is absent or shorter. The values are deliberately not restated here: they are tunable guards, and a hardcoded copy would silently go stale when they change |
+| All stages | Not blocked, not exceeding retry limits; latest result for each checkpoint this round is pass. **Additionally, every REQUIRED checkpoint (the named stages below) must carry a `--reason` at or above the floor in `scripts/state.js`** (`REQUIRED_REASON_MIN`; the lower `LITE_REASON_MIN` now applies only to legacy states written under the retired `fast` path -- see the path-dependent floor note below) -- the gate fails the completion if it is absent or shorter. The values are deliberately not restated here: they are tunable guards, and a hardcoded copy would silently go stale when they change |
 | requirement | This round's `Requirement confirmed` pass + `Decomposition plan` pass; explicit direct execution authorization is also recorded as evidence, not treated as Q&A |
 | tool-research / feature-design / architecture | At least one module this stage; all registered modules must be resubmitted -> approved this round (no old modules omitted) |
 | prototype | All UX and UI concern decisions resolved (approved or binding user resolution); final prototype verified by user; specifications extracted from the working prototype; did not exceed 5-round limit without explicit authorization |
@@ -43,7 +45,7 @@ node scripts/state.js stage implementation in_progress
 
 Required-checkpoint `--reason` is a **length floor, not a semantic test**. It rejects omission and short placeholder text (`done`, `ok`, `pass`, `n/a`) because an empty record cannot be audited afterwards, but it does not judge whether the reasoning is correct -- that judgment stays with the human. This is the same boundary the CLI already has (see the limitation note below) and does not widen it: a well-written reason can still describe work that was never done.
 
-The floor is not uniform across paths. On the `fast` path it is lowered to `LITE_REASON_MIN` (`scripts/state.js`) for the four post-delivery retrospective stages (`learn`, `evolution`, `reflection`, `archive`) only; every other stage keeps `REQUIRED_REASON_MIN` on both paths. The distinction is between gates and retrospectives: the authorization gates (`initialization`, `requirement`) and the evidence gates (`testing`, `review`) keep the full floor on every path, because the risk they guard against -- "tests went green but nothing was verified" -- does not scale down with task size, whereas a post-delivery record describes what was learned after ship and carries no authorization and no delivery evidence. The lowered floor is still a floor, and it is still only an absence/placeholder detector: an omission, an empty string, or `done`/`ok`/`pass`/`n-a` is rejected on the `fast` path exactly as on the full path. This changes how much reason text those four records must carry, not which stages run: `learn`, `evolution`, `reflection` and `archive` remain mandatory on every path, and their checkpoints remain required on every path.
+The floor is `REQUIRED_REASON_MIN` on the full chain (the only chain now) for every stage. The lower `LITE_REASON_MIN` applies **only to legacy states written under the retired `fast` path** (`task.path === 'fast'`), where it is lowered for the four post-delivery retrospective stages (`learn`, `evolution`, `reflection`, `archive`) only; every other stage keeps `REQUIRED_REASON_MIN`. The distinction is between gates and retrospectives: the authorization gates (`initialization`, `requirement`) and the evidence gates (`testing`, `review`) keep the full floor, because the risk they guard against -- "tests went green but nothing was verified" -- does not scale down with task size, whereas a post-delivery record describes what was learned after ship and carries no authorization and no delivery evidence. The lowered floor is still a floor, and it is still only an absence/placeholder detector: an omission, an empty string, or `done`/`ok`/`pass`/`n-a` is rejected on a legacy fast state exactly as on a full-chain state. This changes how much reason text those four records must carry on a legacy state, not which stages run: `learn`, `evolution`, `reflection` and `archive` remain mandatory, and their checkpoints remain required.
 
 The four post-delivery stages (`learn`, `evolution`, `reflection`, `archive`) are mandatory on every path; `learn` follows `ship` directly, exactly as `scripts/lib/stages.js` orders them. The `archive` **command** and the `archive` **stage** are different things that unfortunately share a name: the command relocates `.hello-dev/state.json`, so invoking it before the Archive stage completes leaves no active state and makes every later stage unreachable. Run the command only after `stage archive completed`.
 
@@ -51,7 +53,7 @@ CLI validates record consistency but **cannot authenticate user identity, prove 
 
 The implementation gate is checked against subtask status rather than a required checkpoint on purpose: a checkpoint is a record the agent writes, so it can be marked `pass` without the work existing, whereas `decomposition.tasks` carries the actual per-subtask outcome. States with no `decomposition` section (a scope survey reporting a single logical change unit) are unaffected.
 
-**Decomposition Plan (Mandatory)**: Requirement stage must produce a decomposition plan (see [decomposition.md](task/decomposition.md)). Decomposition is mandatory unless the scope survey reports a single logical change unit (one file, de-duplicated <50 lines, no dependencies, not spanning business modules, no undecided design point) — counted by logical change unit, not by touched-file count. "Spans business modules" is decided mechanically by module root; the definition and the escalation criterion are defined once in [escalation.md](task/escalation.md); [SKILL.md](../../SKILL.md) only cites that section. The plan includes: subtasks with `affectedFiles`, wave order, and dispatch mode (`serial` or `parallel`). Record conclusion in `Decomposition plan` checkpoint. Must decompose or justify skipping; not assessing is not acceptable.
+**Decomposition Plan (Mandatory)**: Requirement stage must produce a decomposition plan (see [decomposition.md](task/decomposition.md)). The decomposition criterion -- when it is mandatory and when it may be skipped -- is defined **once** in [decomposition.md](task/decomposition.md), section "When Decomposition Is Mandatory"; this document does not restate its thresholds. "Spans business modules" is decided mechanically by module root; the definition and the escalation criterion are defined once in [escalation.md](task/escalation.md); [SKILL.md](../../SKILL.md) only cites that section. The plan includes: subtasks with `affectedFiles`, wave order, and dispatch mode (`serial` or `parallel`). Record conclusion in `Decomposition plan` checkpoint. Must decompose or justify skipping; not assessing is not acceptable.
 
 ## Module Approval and Retry
 
@@ -131,7 +133,7 @@ node scripts/state.js collab show      # Read snapshot (default action)
 
 ## Task Decomposition and Order Table (decomposition)
 
-Decomposition is **mandatory** after requirement confirmation. The only valid skip is a scope survey reporting a single logical change unit (one file, de-duplicated <50 lines, no dependencies, not spanning business modules, no undecided design point), counted by logical change unit rather than by touched-file count. This is the decomposition criterion; it is not the escalation criterion (defined once in [escalation.md](task/escalation.md); [SKILL.md](../../SKILL.md) only cites that section, and the module-root definition of "spans business modules" is in the same section). After decomposition, set dispatch mode to control sub-agent usage.
+Decomposition is **mandatory** after requirement confirmation. The decomposition criterion -- when it is mandatory and when the only valid skip applies -- is defined **once** in [decomposition.md](task/decomposition.md), section "When Decomposition Is Mandatory"; this document does not restate its thresholds. It is not the escalation criterion (defined once in [escalation.md](task/escalation.md); [SKILL.md](../../SKILL.md) only cites that section, and the module-root definition of "spans business modules" is in the same section). After decomposition, set dispatch mode to control sub-agent usage.
 
 ```bash
 # Register subtasks (JSON array), auto-derive waves
@@ -145,8 +147,8 @@ node scripts/state.js decompose --tasks '[
 node scripts/state.js order
 
 # Set dispatch mode (after decomposition, before implementation)
-node scripts/state.js dispatch-mode parallel   # default
-node scripts/state.js dispatch-mode serial     # explicit opt-out
+node scripts/state.js dispatch-mode serial     # default: main agent executes all
+node scripts/state.js dispatch-mode parallel   # explicit opt-in: dispatch parallel waves to sub-agents
 
 # View current dispatch mode
 node scripts/state.js dispatch-mode
@@ -178,8 +180,8 @@ node scripts/state.js decompose-clear
 - **`--replace` is an explicit boolean**: `--replace true` overwrites, `--replace false` (or omitting it) refuses when a decomposition already exists. Any other value is rejected. The flag must be passed a value; a bare `--replace` is rejected by argument parsing.
 - **Wave coverage is validated**: a decomposition whose waves do not reference every subtask exactly once is rejected by `validate` and by any progress command. This closes the gap where a 0-wave decomposition reported "[OK] State file valid" and Implementation could then be completed with no wave executed. `decompose --replace true` and `decompose-clear` read leniently on purpose, so the remedy for a broken decomposition is not blocked by the validation that rejects it.
 - **Predecessor check**: `subtask <id> in_progress` automatically verifies all predecessor subtasks are `completed`
-- **Dispatch mode**: `parallel` (default) or `serial`. `parallel` means the main agent must delegate each parallel group to sub-agents; `serial` is an explicit opt-out in which the main agent executes every subtask itself. See [decomposition.md](task/decomposition.md) for sub-agent constraints.
-- **Backward compatibility**: `decomposition` section is optional; when absent, existing state is still readable; once present, strict validation applies. `dispatchMode` and `affectedFiles` fields default to `parallel` and `[]` when a new decomposition is created; a state written before this policy simply lacks them and is read as-is.
+- **Dispatch mode**: `serial` (default) or `parallel`. `serial` means the main agent executes every subtask itself and owes no dispatch records; `parallel` is an explicit opt-in in which the main agent must delegate each parallel group to sub-agents and record each parallel wave's `dispatch` or `dispatch-waive`. See [decomposition.md](task/decomposition.md) for sub-agent constraints.
+- **Backward compatibility**: `decomposition` section is optional; when absent, existing state is still readable; once present, strict validation applies. `dispatchMode` and `affectedFiles` fields default to `serial` and `[]` when a new decomposition is created; a state written before this policy simply lacks them and is read as-is (readers fall back to `serial`).
 - **Connection with Implementation**: Implementation executes by wave; current wave must all be completed before entering next wave. When `dispatchMode` is `parallel`, parallel waves dispatch to sub-agents.
 
 ### Mandatory sub-agent dispatch
@@ -407,7 +409,7 @@ Purpose: When two tasks truly need to progress simultaneously (e.g., one stuck i
 - File pointed to by `--task <id>` must already exist; when it doesn't, explicitly errors and lists known parallel tasks; **does not silently fall back to reading main state file** (fallback would write progress to wrong task). **Exception: `init --task <id>` is the sole creator** -- it goes through cold start (`findRoot() || cwd`) not `requireRoot()`; creates file when it doesn't exist (help text also teaches `init ... [--task <id>]`).
 - `<id>` must be a safe 1-64 character identifier, validated before site selection to avoid `../` spelling out out-of-bounds filenames.
 - `finalize` finalizes **the selected** file; does not touch main state file.
-- **Limitation**: Parallel tasks do not change each task's own execution path -- `implementation`/`fast` still have no `feature-design`/`architecture`.
+- **Limitation**: Parallel tasks do not change each task's own execution path -- each task carries its own `skipped` set (or, for legacy states, its own `path`/`type` filter), so two siblings may legitimately have different active-stage sets.
 - **Not provided**: No interactive interface for task list/switching; use `ls .hello-dev/state*.json` combined with `--task` when needed.
 
 ## Verification and Related Protocols
