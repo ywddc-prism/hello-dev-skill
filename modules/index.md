@@ -16,62 +16,62 @@
 
 | File | Title | Description |
 |------|-------|-------------|
-| [core\accumulation.md](core/accumulation.md) | Experience Accumulation System | Warning: Historical Design (v9-v13 era) — This file is not r... |
-| [core\approval\design-flow.md](core/approval/design-flow.md) | Design Approval Flow | Split real design decisions into independently judgable modu... |
-| [core\approval\git-gate.md](core/approval/git-gate.md) | Git Approval Gate | Risk classification describes existing hook behavior; does n... |
-| [core\approval\ops-execution.md](core/approval/ops-execution.md) | Ops Execution - Operations Execution & Approval Gate | Document-driven operations governance: safe read-only transp... |
-| [core\contrast-report.md](core/contrast-report.md) | Contrast Report - Limit Exceeded Comparison Report | Assists user decisions based on recorded facts; does not fab... |
-| [core\error-recovery.md](core/error-recovery.md) | Error Recovery — Teaching Reference | Authoritative Source: Complete rules for rollback and retry... |
-| [core\implementation-agent.md](core/implementation-agent.md) | Implementation Agent - Implementation Responsibilities | "Implementation Agent" is an execution responsibility. It la... |
-| [core\loop-concept.md](core/loop-concept.md) | HelloDev Core Concept — Teaching Reference | Authoritative Source: Core concepts and execution paths foll... |
-| [core\project-experience.md](core/project-experience.md) | Project Experience Template - Enhanced | Warning: Historical Design (v9-v13 era) — This file is not r... |
-| [core\retry-state-machine.md](core/retry-state-machine.md) | Retry State Machine - Retry Protocol | Actual storage, commands, and transitions follow state-proto... |
-| [core\rollback.md](core/rollback.md) | Rollback Mechanism — Teaching Reference | Authoritative Source: Complete rules for rollback and retry... |
-| [core\self-review.md](core/self-review.md) | Self Review | Compare requirements against actual behavior; do not substit... |
-| [core\state-protocol.md](core/state-protocol.md) | State Protocol - State Persistence Protocol | Default active state is the target project's .hello-dev/stat... |
-| [core\task\classifier.md](core/task/classifier.md) | Task Classifier | Classify by actual side effects and decision needs; do not m... |
-| [core\task\decomposition.md](core/task/decomposition.md) | Task Decomposition | Decomposition is mandatory after requirement confirmation. T... |
-| [core\task\escalation.md](core/task/escalation.md) | Escalation Criteria and Module-Root Definition |  |
-| [core\task\intent-resolver.md](core/task/intent-resolver.md) | Intent Resolver - Intent Mapping | State machines are for the system; users should not bear the... |
-| [core\user-insights.md](core/user-insights.md) | User Behavior Insights | Warning: Historical Design (v9-v13 era) — This file is not r... |
+| [core/accumulation.md](core/accumulation.md) | Experience Accumulation System | Warning: Historical Design (v9-v13 era) — This file is not r... |
+| [core/approval/design-flow.md](core/approval/design-flow.md) | Design Approval Flow | Split real design decisions into independently judgable modu... |
+| [core/approval/git-gate.md](core/approval/git-gate.md) | Git Approval Gate | Risk classification describes existing hook behavior; does n... |
+| [core/approval/ops-execution.md](core/approval/ops-execution.md) | Ops Execution - Operations Execution & Approval Gate | Document-driven operations governance: safe read-only transp... |
+| [core/contrast-report.md](core/contrast-report.md) | Contrast Report - Limit Exceeded Comparison Report | Assists user decisions based on recorded facts; does not fab... |
+| [core/error-recovery.md](core/error-recovery.md) | Error Recovery — Teaching Reference | Authoritative Source: Complete rules for rollback and retry... |
+| [core/implementation-agent.md](core/implementation-agent.md) | Implementation Agent - Implementation Responsibilities | "Implementation Agent" is an execution responsibility. It la... |
+| [core/loop-concept.md](core/loop-concept.md) | HelloDev Core Concept — Teaching Reference | Authoritative Source: Core concepts and execution paths foll... |
+| [core/project-experience.md](core/project-experience.md) | Project Experience Template - Enhanced | Warning: Historical Design (v9-v13 era) — This file is not r... |
+| [core/retry-state-machine.md](core/retry-state-machine.md) | Retry State Machine - Retry Protocol | Actual storage, commands, and transitions follow state-proto... |
+| [core/rollback.md](core/rollback.md) | Rollback Mechanism — Teaching Reference | Authoritative Source: Complete rules for rollback and retry... |
+| [core/self-review.md](core/self-review.md) | Self Review | Compare requirements against actual behavior; do not substit... |
+| [core/state-protocol.md](core/state-protocol.md) | State Protocol - State Persistence Protocol | Default active state is the target project's .hello-dev/stat... |
+| [core/task/classifier.md](core/task/classifier.md) | Task Classifier | Classify by actual side effects and decision needs; do not m... |
+| [core/task/decomposition.md](core/task/decomposition.md) | Task Decomposition | Decomposition is mandatory after requirement confirmation. T... |
+| [core/task/escalation.md](core/task/escalation.md) | Escalation Criteria and Module-Root Definition |  |
+| [core/task/intent-resolver.md](core/task/intent-resolver.md) | Intent Resolver - Intent Mapping | State machines are for the system; users should not bear the... |
+| [core/user-insights.md](core/user-insights.md) | User Behavior Insights | Warning: Historical Design (v9-v13 era) — This file is not r... |
 
 ## Stage definitions (authoritative)
 
 | File | Title | Description |
 |------|-------|-------------|
-| [stages\architecture.md](stages/architecture.md) | Stage 4: Architecture - One Decision at a Time | Execution boundaries follow SKILL.md and State Protocol. Bel... |
-| [stages\bootstrap.md](stages/bootstrap.md) | Stage 1: Bootstrap - Initialization | Find the correct project, confirm existing work and capabili... |
-| [stages\implementation.md](stages/implementation.md) | Stage 5: Implementation - Small Batch Implementation | Implement per approved scope; do not impose example engineer... |
-| [stages\initialization.md](stages/initialization.md) | Stage 2: Initialization - Scope Survey & Coarse Decomposition | The session's first planning step. Identify what this work i... |
-| [stages\prototype.md](stages/prototype.md) | Stage: Prototype - Interleaved UX + UI Design | Mandatory stage in the design/full execution path. Replaces... |
-| [stages\requirement.md](stages/requirement.md) | Stage 3: Requirement - Requirement Confirmation | Confirm the problem to solve and authorization boundaries; d... |
-| [stages\review.md](stages/review.md) | Stage 7: Review - Evidence Review | Independently check requirements, implementation, documentat... |
-| [stages\ship.md](stages/ship.md) | Stage 8: Ship - Delivery | Delivery completion does not mean auto-commit, push, or go-l... |
-| [stages\stage-9-1-evolution.md](stages/stage-9-1-evolution.md) | Stage: Evolution - Pattern Extraction & Self-Optimization | Mandatory stage after Learn. Detect deficiencies from eviden... |
-| [stages\stage-9-2-reflection.md](stages/stage-9-2-reflection.md) | Stage: Reflection - Agent Self-Evaluation | Mandatory stage after Evolution. The agent evaluates its own... |
-| [stages\stage-9-3-archive.md](stages/stage-9-3-archive.md) | Stage: Archive - Loop Archive | Mandatory final stage. Permanent storage + Search optimizati... |
-| [stages\stage-9-learn.md](stages/stage-9-learn.md) | Stage: Learn - Instant Learning System | Mandatory stage after Ship. Embedded learning moments throug... |
-| [stages\testing.md](stages/testing.md) | Stage 6: Testing - Layered Verification | Test conclusions must come from actual execution; inapplicab... |
-| [stages\tool-research.md](stages/tool-research.md) | Stage: Tool Research - Open Source Framework and Tool Research | Mandatory stage in the design/full execution path. Positione... |
-| [stages\ui-design.md](stages/ui-design.md) | Stage: UI Design - Visual Design & Design System | Historical stage document (superseded). This file described... |
-| [stages\ux-design.md](stages/ux-design.md) | Stage: UX Design - Interaction Design & User Experience | Historical stage document (superseded). This file described... |
+| [stages/architecture.md](stages/architecture.md) | Stage 4: Architecture - One Decision at a Time | Execution boundaries follow SKILL.md and State Protocol. Bel... |
+| [stages/bootstrap.md](stages/bootstrap.md) | Stage 1: Bootstrap - Initialization | Find the correct project, confirm existing work and capabili... |
+| [stages/implementation.md](stages/implementation.md) | Stage 5: Implementation - Small Batch Implementation | Implement per approved scope; do not impose example engineer... |
+| [stages/initialization.md](stages/initialization.md) | Stage 2: Initialization - Scope Survey & Coarse Decomposition | The session's first planning step. Identify what this work i... |
+| [stages/prototype.md](stages/prototype.md) | Stage: Prototype - Interleaved UX + UI Design | Mandatory stage in the design/full execution path. Replaces... |
+| [stages/requirement.md](stages/requirement.md) | Stage 3: Requirement - Requirement Confirmation | Confirm the problem to solve and authorization boundaries; d... |
+| [stages/review.md](stages/review.md) | Stage 7: Review - Evidence Review | Independently check requirements, implementation, documentat... |
+| [stages/ship.md](stages/ship.md) | Stage 8: Ship - Delivery | Delivery completion does not mean auto-commit, push, or go-l... |
+| [stages/stage-9-1-evolution.md](stages/stage-9-1-evolution.md) | Stage: Evolution - Pattern Extraction & Self-Optimization | Mandatory stage after Learn. Detect deficiencies from eviden... |
+| [stages/stage-9-2-reflection.md](stages/stage-9-2-reflection.md) | Stage: Reflection - Agent Self-Evaluation | Mandatory stage after Evolution. The agent evaluates its own... |
+| [stages/stage-9-3-archive.md](stages/stage-9-3-archive.md) | Stage: Archive - Loop Archive | Mandatory final stage. Permanent storage + Search optimizati... |
+| [stages/stage-9-learn.md](stages/stage-9-learn.md) | Stage: Learn - Instant Learning System | Mandatory stage after Ship. Embedded learning moments throug... |
+| [stages/testing.md](stages/testing.md) | Stage 6: Testing - Layered Verification | Test conclusions must come from actual execution; inapplicab... |
+| [stages/tool-research.md](stages/tool-research.md) | Stage: Tool Research - Open Source Framework and Tool Research | Mandatory stage in the design/full execution path. Positione... |
+| [stages/ui-design.md](stages/ui-design.md) | Stage: UI Design - Visual Design & Design System | Historical stage document (superseded). This file described... |
+| [stages/ux-design.md](stages/ux-design.md) | Stage: UX Design - Interaction Design & User Experience | Historical stage document (superseded). This file described... |
 
 ## Execution paths (authoritative)
 
 | File | Title | Description |
 |------|-------|-------------|
-| [paths\dev-mode-guide.md](paths/dev-mode-guide.md) | Development Mode Guide | Info: Positioning: This document describes the three develop... |
-| [paths\fast-path.md](paths/fast-path.md) | Fast Path | Reduce design and explanation; do not reduce authorization,... |
-| [paths\full-flow.md](paths/full-flow.md) | Full Flow | Use design/full when new design or important architecture de... |
-| [paths\tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Same 11 HelloDev stages as fast... |
-| [paths\worktree-guide.md](paths/worktree-guide.md) | Worktree Guide - Subtask Branch Management | Use Git Worktree to manage subtask branches, keeping the mai... |
+| [paths/dev-mode-guide.md](paths/dev-mode-guide.md) | Development Mode Guide | Info: Positioning: This document describes the three develop... |
+| [paths/fast-path.md](paths/fast-path.md) | Fast Path | Reduce design and explanation; do not reduce authorization,... |
+| [paths/full-flow.md](paths/full-flow.md) | Full Flow | Use design/full when new design or important architecture de... |
+| [paths/tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Same 11 HelloDev stages as fast... |
+| [paths/worktree-guide.md](paths/worktree-guide.md) | Worktree Guide - Subtask Branch Management | Use Git Worktree to manage subtask branches, keeping the mai... |
 
 ## Other
 
-- [hosts\_template.md](hosts\_template.md) -- Host Adapter: <Host Name>
-- [hosts\codex.md](hosts\codex.md) -- Host Adapter: Codex
-- [hosts\README.md](hosts\README.md) -- Host Adapter Layer -- Sub-Agent Dispatch
-- [hosts\workbuddy.md](hosts\workbuddy.md) -- Host Adapter: WorkBuddy
+- [hosts/_template.md](hosts/_template.md) -- Host Adapter: <Host Name>
+- [hosts/codex.md](hosts/codex.md) -- Host Adapter: Codex
+- [hosts/README.md](hosts/README.md) -- Host Adapter Layer -- Sub-Agent Dispatch
+- [hosts/workbuddy.md](hosts/workbuddy.md) -- Host Adapter: WorkBuddy
 
 ## Supporting files outside modules/
 

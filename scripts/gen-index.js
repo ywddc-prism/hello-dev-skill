@@ -56,8 +56,12 @@ function build() {
   const files = walk(MODULES).filter(f => f !== OUT);
   const byGroup = {};
   for (const f of files) {
-    const rel = path.relative(MODULES, f);
-    const top = rel.split(path.sep)[0];
+    // Normalise to POSIX separators here, once: this index is committed and read on every
+    // platform, and a backslash in a link target resolves on Windows but is a literal
+    // character on Linux. Measured: check-links stayed green locally while CI failed with
+    // 4 broken links, all in the hosts list at the bottom of this file.
+    const rel = path.relative(MODULES, f).split(path.sep).join('/');
+    const top = rel.split('/')[0];
     (byGroup[top] = byGroup[top] || []).push({ rel, file: f, ...describe(f) });
   }
 
@@ -86,7 +90,7 @@ function build() {
     lines.push('|------|-------|-------------|');
     for (const it of items) {
       const banner = it.historical ? ' [HISTORICAL]' : '';
-      lines.push(`| [${it.rel}](${it.rel.split(path.sep).join('/')}) | ${it.title} | ${it.desc}${banner} |`);
+      lines.push(`| [${it.rel}](${it.rel}) | ${it.title} | ${it.desc}${banner} |`);
     }
     lines.push('');
   }

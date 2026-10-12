@@ -281,8 +281,23 @@ section('7. Validator degradation semantics (check-collaboration-matrix.js)');
  // The doc block was generated on the author's machine, so on any other machine the
  // comparison reports a difference -- which is expected and must not be turned into a
  // SKIP, and must not be turned into a failure either.
+ //
+ // The predicate must be measured in the SAME context the guard ran in. The guard detects
+ // with cwd = <its own directory>/.., which in the skeleton is SKEL -- so the repository's
+ // own bundled skills/ is not visible to it, and its "skills" are the real home's user
+ // roots. An in-process detectSkills({}) call from this repository always counted this
+ // repo's own bundled skills instead, so on any machine whose only skills are the bundled
+ // ones (every fresh clone, CI) the predicate claimed "has skills" while the guard
+ // correctly skipped -- a permanent false red on a machine-state fact. Spawn the same
+ // CLI the guard uses, with the same env neutralisation as runCheck, under SKEL.
+ const realHasSkills = (() => {
+   const env = { ...process.env, HOME: os.homedir(), CLAUDE_CONFIG_DIR: path.join(os.homedir(), '.claude') };
+   for (const k of ['HELLODEV_HOME', 'HELLODEV_HOST', 'WORKBUDDY_SESSION']) delete env[k];
+   const r = require('child_process').spawnSync(process.execPath,
+     [path.join(SKEL, 'scripts', 'detect-skills.js')], { cwd: SKEL, encoding: 'utf8', env });
+   try { return JSON.parse(r.stdout).count > 0; } catch (e) { return false; }
+ })();
  const real = runCheck(os.homedir());
- const realHasSkills = D.detectSkills({}).count > 0;
  ok('real comparison executed when machine has skills', realHasSkills
  ? /S4\.2 consistent with live detection|S4\.2 content is inconsistent with live skill detection/.test(real.out)
  : real.code === 0,
