@@ -2,16 +2,16 @@
 
 This file is the **single authoritative source** for the escalation criterion and the "spans business modules" module-root definition. All other documents cite this file; they do not define their own thresholds.
 
-## Scope Survey (routing precondition)
+## Scope Survey (precondition of any skip proposal or escalation decision)
 
-Before making any WF-Fast / WF-Standard routing decision, produce four items:
+Before proposing a design-stage skip or making an escalation decision, produce four items:
 
 1. Affected file list
 2. Number of logical change units
 3. Whether the change spans business modules (see definition below)
 4. Whether any undecided design point exists
 
-Without a completed scope survey, no fast/standard path decision may be given.
+Without a completed scope survey, no skip proposal or escalation decision may be given. There is one execution path (the full chain); "escalation" here decides whether the work needs the full design loop run rather than proposed design-stage skips — it does not select a second route.
 
 ## "Spans business modules" -- a decidable definition
 
@@ -49,5 +49,5 @@ Supplementary (does not add thresholds): "spans business modules" is judged by t
 These are **two different questions with two different thresholds**, both consuming the **same** scope-survey output, and their conclusions are **independent** -- escalation != decomposition.
 
 - **Escalation criterion** (this section) answers "should this request take the standard loop", consuming the scope survey's four outputs (affected file list, logical change units, cross-module, undecided design point) plus de-duplicated line count.
-- **Decomposition criterion** (the "When Decomposition Is Mandatory" tables in [requirement](../../stages/requirement.md) and [decomposition](decomposition.md)) answers "should this request be split into subtasks", consuming the same scope-survey output, with thresholds: >= 2 logical change units, clear sequential dependencies, de-duplicated estimated > 50 lines.
+- **Decomposition criterion** (defined once in [decomposition](decomposition.md), section "When Decomposition Is Mandatory"; [requirement](../../stages/requirement.md) cites it) answers "should this request be split into subtasks", consuming the same scope-survey output. This document does not restate its thresholds.
 - **Relationship**: the same scope survey feeds both criteria but conclusions are independent. Valid combinations include "escalate but only 1 change unit so decomposition may be skipped" (e.g. a single change unit with an undecided design point, or landing in 2 module roots) and "decompose without escalating" (e.g. 2 change units, same module, no undecided design point, de-duplicated < 50 lines). When both hold, execute per each conclusion: escalation determines path, decomposition determines granularity and wave scheduling.

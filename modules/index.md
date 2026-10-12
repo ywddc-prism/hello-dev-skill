@@ -39,7 +39,7 @@
 
 | File | Title | Description |
 |------|-------|-------------|
-| [stages/architecture.md](stages/architecture.md) | Stage 4: Architecture - One Decision at a Time | Execution boundaries follow SKILL.md and State Protocol. Bel... |
+| [stages/architecture.md](stages/architecture.md) | Stage 4: Architecture - One Decision at a Time (Mandatory User Questioning) | Execution boundaries follow SKILL.md and State Protocol. Bel... |
 | [stages/bootstrap.md](stages/bootstrap.md) | Stage 1: Bootstrap - Initialization | Find the correct project, confirm existing work and capabili... |
 | [stages/implementation.md](stages/implementation.md) | Stage 5: Implementation - Small Batch Implementation | Implement per approved scope; do not impose example engineer... |
 | [stages/initialization.md](stages/initialization.md) | Stage 2: Initialization - Scope Survey & Coarse Decomposition | The session's first planning step. Identify what this work i... |
@@ -61,9 +61,9 @@
 | File | Title | Description |
 |------|-------|-------------|
 | [paths/dev-mode-guide.md](paths/dev-mode-guide.md) | Development Mode Guide | Info: Positioning: This document describes the three develop... |
-| [paths/fast-path.md](paths/fast-path.md) | Fast Path | Reduce design and explanation; do not reduce authorization,... |
+| [paths/fast-path.md](paths/fast-path.md) | Fast Path (Retired) | The fast path is retired. Every task now runs the full 15-st... |
 | [paths/full-flow.md](paths/full-flow.md) | Full Flow | Use design/full when new design or important architecture de... |
-| [paths/tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Same 11 HelloDev stages as fast... |
+| [paths/tiny-path.md](paths/tiny-path.md) | Tiny Path | Single-file trivial changes. Runs the full 15-stage chain bu... |
 | [paths/worktree-guide.md](paths/worktree-guide.md) | Worktree Guide - Subtask Branch Management | Use Git Worktree to manage subtask branches, keeping the mai... |
 
 ## Other

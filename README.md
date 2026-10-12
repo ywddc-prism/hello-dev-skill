@@ -32,12 +32,13 @@ Unlike other AI dev tools that focus on "writing code faster", Hello Dev focuses
 ## Quick Start
 
 ```bash
-# 1. Initialize a new task
-node scripts/state.js init --name "Your task name" --type implementation --path fast
+# 1. Initialize a new task (every task starts on the full chain)
+node scripts/state.js init --name "Your task name" --type implementation
 
 # 2. Follow the execution path
-# fast: bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
 # full: bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
+# When a design stage is unnecessary, propose it and record the user-approved skip:
+# node scripts/state.js skip <stage> --reason "<user approval, verbatim>"
 
 # 3. Run self-check after modifications
 bash scripts/self-check.sh
@@ -48,7 +49,7 @@ For detailed usage, see [_quick-start.md](_quick-start.md).
 ## Core Concepts
 
 - **Execution Contract**: 7 principles governing scope confirmation, causality understanding, exception handling, accurate accounting, minimal authorization, minimal change, and stoppability.
-- **Execution Paths**: Choose `fast` when the scope survey reports a single logical change unit (de-duplicated <50 lines, no new dependencies); otherwise `implementation` for standard tasks, or `full` for new design work. The escalation criterion and the module-root definition of "spans business modules" are defined once in [escalation.md](modules/core/task/escalation.md); this list cites them and does not restate their thresholds.
+- **Execution Path**: Every task runs the full 15-stage chain. When a design stage is unnecessary, the agent proposes the skip at the stage boundary and records it only after user approval (`state.js skip`). The escalation criterion and the module-root definition of "spans business modules" are defined once in [escalation.md](modules/core/task/escalation.md); this list cites them and does not restate their thresholds.
 - **Dual-Gate Strategy**: Git operations and ops commands (kubectl, systemctl, terraform) are classified by risk level before execution.
 - **State Persistence**: All approvals, retries, and checkpoints are recorded in `.hello-dev/state.json` for recovery and audit.
 
@@ -62,7 +63,7 @@ hello-dev/
  modules/
     core/                   # Core modules (state protocol, approval, task management)
     stages/                 # Stage definitions (bootstrap -> ship)
-    paths/                  # Execution paths (fast, full, dev-mode-guide)
+    paths/                  # Execution paths (full flow, legacy fast doc retired)
     hosts/                  # Host adapter layer for sub-agent dispatch
  scripts/                    # CLI tools (state.js, memory.js, self-check.sh)
  hooks/                      # PreToolUse hooks (git-gate.js, opsgate.js)
@@ -75,8 +76,9 @@ hello-dev/
 
 ```bash
 # State management
-node scripts/state.js init --name "Task" --type implementation --path fast
+node scripts/state.js init --name "Task" --type implementation
 node scripts/state.js stage <name> <status>
+node scripts/state.js skip <stage> --reason "<user approval, verbatim>"
 node scripts/state.js checkpoint "Name" pass --reason "Evidence"
 node scripts/state.js decompose --tasks '[...]'
 node scripts/state.js resume
@@ -95,9 +97,9 @@ node scripts/check-links.js
 
 | Path | Stages | Use Case |
 |------|--------|----------|
-| `fast` | bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | Scope survey reports a single logical change unit (de-duplicated <50 lines, no new dependencies); this is the inverse of the escalation criterion defined once in [escalation.md](modules/core/task/escalation.md), which is the only place the thresholds are stated |
-| `implementation` | Same as fast | Standard tasks with clear plan |
-| `full` | bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | New design or major architecture changes |
+| `full` (the only path) | Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive | Every task; design stages are skipped only via recorded user-approved `state.js skip` |
+
+The escalation criterion and the module-root definition of "spans business modules" are defined once in [escalation.md](modules/core/task/escalation.md), which is the only place the thresholds are stated.
 
 ## Hard Constraints
 

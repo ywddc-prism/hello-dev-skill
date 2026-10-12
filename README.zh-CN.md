@@ -32,12 +32,13 @@ Hello Dev 是一个开发增强系统，解决 AI 辅助开发反复遇到的七
 ## 快速开始
 
 ```bash
-# 1. 初始化新任务
-node scripts/state.js init --name "你的任务名称" --type implementation --path fast
+# 1. 初始化新任务(所有任务都从全链开始)
+node scripts/state.js init --name "你的任务名称" --type implementation
 
 # 2. 按执行路径推进
-# fast: bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
 # full: bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
+# 当某个设计阶段非必要时,先提议,经用户同意后记录跳过:
+# node scripts/state.js skip <stage> --reason "<用户批准原话>"
 
 # 3. 修改后运行自检查
 bash scripts/self-check.sh
@@ -48,7 +49,7 @@ bash scripts/self-check.sh
 ## 核心概念
 
 - **执行契约**:7 条原则,涵盖范围确认、因果理解、例外处理、精确记账、最小授权、最小变更和可停止性。
-- **执行路径**:小变更(<50 行,无新依赖)选 `fast`,标准任务选 `implementation`,新设计工作选 `full`。
+- **执行路径**:所有任务都走完整 15 阶段链;设计阶段非必要时,由 agent 在阶段边界提议、经用户同意后用 `state.js skip` 记录跳过。
 - **双门禁策略**:Git 操作和运维命令(kubectl、systemctl、terraform)在执行前按风险等级分类。
 - **状态持久化**:所有审批、重试和检查点记录在 `.hello-dev/state.json` 中,用于恢复和审计。
 
@@ -63,7 +64,7 @@ hello-dev/
 ├── modules/
 │   ├── core/                   # 核心模块(状态协议、审批、任务管理)
 │   ├── stages/                 # 阶段定义(bootstrap -> ship)
-│   ├── paths/                  # 执行路径(fast、full、dev-mode-guide)
+│   ├── paths/                  # 执行路径(full;旧 fast 文档已退役)
 │   └── hosts/                  # 主机适配层(子 agent 调度)
 ├── scripts/                    # CLI 工具(state.js、memory.js、self-check.sh)
 ├── hooks/                      # PreToolUse hooks(git-gate.js、opsgate.js)
@@ -76,8 +77,9 @@ hello-dev/
 
 ```bash
 # 状态管理
-node scripts/state.js init --name "任务" --type implementation --path fast
+node scripts/state.js init --name "任务" --type implementation
 node scripts/state.js stage <名称> <状态>
+node scripts/state.js skip <阶段> --reason "<用户批准原话>"
 node scripts/state.js checkpoint "名称" pass --reason "证据"
 node scripts/state.js decompose --tasks '[...]'
 node scripts/state.js resume
@@ -96,9 +98,7 @@ node scripts/check-links.js
 
 | 路径 | 阶段 | 使用场景 |
 |------|------|----------|
-| `fast` | bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | 小变更,<50 行,无新依赖 |
-| `implementation` | 同 fast | 有明确方案的标准任务 |
-| `full` | bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | 新设计或重大架构变更 |
+| `full`(唯一路径) | bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive | 所有任务;设计阶段仅可经记录在案的用户批准 `state.js skip` 跳过 |
 
 ## 硬约束
 

@@ -1,8 +1,10 @@
 # Tiny Path
 
-> Single-file trivial changes. Same 11 HelloDev stages as fast/medium, but executed by the lead agent alone — no sub-agents spawned.
+> Single-file trivial changes. Runs the full 15-stage chain but merged into four phases executed by the lead agent alone — no sub-agents spawned.
 
 Applicable: scope survey reports a single file, single logical change unit, de-duplicated ≤ 10 lines, no test updates needed, no cross-module impact, no undecided design points. The key criterion is **no sub-agent needed** — the change is small enough that spawning a team would cost more overhead than the change itself.
+
+Under the full-chain default, tiny does **not** route through a shorter chain: design stages are skipped only through the recorded, user-approved `state.js skip` mechanism (proposed at the stage boundary when the survey shows no design point). The chain is `bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive`; with design stages skipped, the execution path reaches implementation through consent-based skips, not a separate declared route.
 
 ## Tiny Entry Conditions (all must hold)
 
@@ -16,25 +18,25 @@ Applicable: scope survey reports a single file, single logical change unit, de-d
 | Test updates needed | No |
 | API / data model change | No |
 
-**Any condition not met → escalate to WF-Fast (medium) or WF-Standard.**
+**Any condition not met → escalate to the standard flow** (see [escalation.md](../core/task/escalation.md)).
 
 ## Orchestration Phases
 
-The 11 HelloDev stages are still all executed, but merged into fewer phases run by the lead agent alone:
+The stages are still all executed, but merged into fewer phases run by the lead agent alone:
 
 | Phase | HelloDev Stages | Who | Notes |
 |-------|---------------|-----|-------|
 | 1 | bootstrap + initialization + requirement | Lead agent | No scope-gatekeeper sub-agent; lead confirms boundary directly and records basis |
-| 2 | implementation + testing | Lead agent | Implement the change, then run applicable verification. Testing scope is minimal for single-file trivial changes |
+| 2 | tool-research + feature-design + architecture + prototype (skipped when the survey shows no design point, via user-approved `state.js skip`) + implementation + testing | Lead agent | Implement the change, then run applicable verification. Testing scope is minimal for single-file trivial changes |
 | 3 | review + ship | Lead agent | Self-review + delivery conclusion. No independent reviewer sub-agent |
 | 4 | learn + evolution + reflection + archive | Lead agent | Combined: write memory entry, close loop, update index. Minimal ceremony for trivial changes |
 
 ## State Initialization
 
-Tiny path still initializes HelloDev state (`state.js init`) for audit traceability. The type should be `fast` (tiny uses the same underlying state as fast — 11 stages, no design stages).
+Tiny path still initializes HelloDev state (`state.js init`) for audit traceability. The task type is `implementation`; the route is always the full chain:
 
 ```bash
-node scripts/state.js init --name "Task name" --type fast
+node scripts/state.js init --name "Task name" --type implementation
 ```
 
 ## What Tiny Does NOT Skip
@@ -53,11 +55,11 @@ node scripts/state.js init --name "Task name" --type fast
 
 ## Comparison
 
-| Dimension | Tiny | Fast (Medium) | Standard |
-|-----------|------|---------------|----------|
-| Sub-agents spawned | None | Core members (verifier, reviewer, etc.) | Full team (all members) |
-| HelloDev stages covered | 11/11 (merged) | 11/11 (independent) | 15/15 (full path) |
-| Independent review | No (self-review) | Yes (reviewer) | Yes (reviewer) |
-| Typical scenario | Typo fix, config value change | Bug fix, small feature | New module, architecture change |
+| Dimension | Tiny | Standard |
+|-----------|------|----------|
+| Sub-agents spawned | None | Full team (all members) |
+| HelloDev stages covered | 15/15 (full path) (merged; design stages skipped only via user-approved `state.js skip` when the survey shows no design point) | 15/15 (full path) (full chain, design stages executed) |
+| Independent review | No (self-review) | Yes (reviewer) |
+| Typical scenario | Typo fix, config value change | New module, architecture change |
 
-CLI transitions and checkpoints in [state-protocol.md](../core/state-protocol.md). Comparison with fast path: [fast-path.md](fast-path.md). Full flow: [full-flow.md](full-flow.md).
+CLI transitions and checkpoints in [state-protocol.md](../core/state-protocol.md). Full flow: [full-flow.md](full-flow.md).

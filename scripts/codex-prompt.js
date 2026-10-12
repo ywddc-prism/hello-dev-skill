@@ -28,6 +28,25 @@ const decomp = require('./lib/decomposition');
 
 const DIR = '.hello-dev';
 const FILE = 'state.json';
+// Plan-intent handoff artifact filename. Must match state.js PLAN_INTENT_FILE -- the
+// state records this bare name and this module reads the same file. Kept as a literal
+// here (not imported) because codex-prompt.js deliberately avoids requiring state.js
+// (it is a read-only consumer of the state file, not a writer).
+const PLAN_INTENT_FILE = 'plan-intent.md';
+
+/**
+ * Read the plan-intent artifact for a state, if one was recorded. Returns '' when
+ * absent or unreadable: a missing artifact must not fail prompt generation (the
+ * Context block still carries working directory and off-limits), but a present one
+ * is injected verbatim.
+ */
+function readPlanIntent(root, state) {
+  var f = state && state.decomposition && state.decomposition.planIntentFile;
+  if (!f || typeof f !== 'string') return '';
+  if (path.basename(f) !== f) return ''; // reject any directory component (same rule as state.js validate)
+  try { return fs.readFileSync(path.join(root, DIR, f), 'utf8').trim(); }
+  catch (e) { return ''; }
+}
 
 function fail(msg) { console.error('Error: ' + msg); process.exit(1); }
 
@@ -122,6 +141,23 @@ function buildPrompt(subtask, opts) {
   var projectPath = opts.projectPath || process.cwd();
   var affectedFiles = (subtask.affectedFiles || []).join('\n');
   var acceptanceCriteria = (subtask.acceptanceCriteria || []).map(function(c) { return '- ' + c; }).join('\n');
+  var planIntent = opts.planIntent || '';
+
+  // "## Context (already established -- do not re-derive)" -- the block the codex.md
+  // prompt template specifies but this constructor historically did not emit (codex.md:
+  // "codex-prompt.js does not emit a Context block today"). Sub-agents inherit no caller
+  // context (decomposition.md constraint 7), so the plan-intent artifact is the side
+  // task's only source of the *why* behind the design: layering, data flow, and
+  // cross-cutting decisions (e.g. prepare/stream separation, disconnect semantics).
+  // When no plan-intent artifact exists the block still appears with the structural
+  // context (working directory + off-limits), so its absence is never ambiguous.
+  var contextBlock = '## Context (already established -- do not re-derive)\n' +
+    '- Working directory (absolute): ' + projectPath + '\n' +
+    '- Off-limits (do NOT touch, and why): everything outside the Files list above.\n' +
+    (planIntent
+      ? '- Global design intent (from .hello-dev/' + PLAN_INTENT_FILE + ') -- read it before changing anything; it carries the layering, data flow, and rationale your subtask must stay consistent with:\n' +
+        planIntent.split('\n').map(function(l) { return '  ' + l; }).join('\n') + '\n'
+      : '- Global design intent: (none recorded -- ask main agent for the architecture rationale if a decision here would span files beyond your list)\n');
 
   return 'You are a Hello Dev subtask agent. Implement the following scoped change.\n\n' +
     '## Project\n' + projectName + ' (' + projectPath + ')\n\n' +
@@ -139,6 +175,7 @@ function buildPrompt(subtask, opts) {
     '- Do NOT modify files outside the list above.\n' +
     '- Do NOT create side tasks, threads, or forks.\n' +
     '- Follow Hello Dev four-layer verification on your affected files.\n\n' +
+    contextBlock + '\n\n' +
     '## Working Directory\n' + projectPath;
 }
 
@@ -165,6 +202,7 @@ function cmdGenerate(args) {
   var prompt = buildPrompt(subtask, {
     project: project || state.name || 'target project',
     projectPath: projectPath || root,
+    planIntent: readPlanIntent(root, state),
   });
 
   console.log(JSON.stringify({
@@ -200,6 +238,7 @@ function cmdWave(args) {
     });
   });
 
+  var planIntent = readPlanIntent(root, state);
   var prompts = waveTasks.map(function(t) {
     return {
       subtaskId: t.id,
@@ -207,7 +246,7 @@ function cmdWave(args) {
       status: t.status || 'pending',
       affectedFiles: t.affectedFiles || [],
       title: 'HelloDev: ' + t.name + ' (' + t.id + ')',
-      prompt: buildPrompt(t, { project: project || state.name || 'target project', projectPath: projectPath || root }),
+      prompt: buildPrompt(t, { project: project || state.name || 'target project', projectPath: projectPath || root, planIntent: planIntent }),
     };
   });
 

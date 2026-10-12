@@ -9,9 +9,10 @@
  * they must be persistable, recoverable, and auditable.
  *
  * Usage:
- *   node scripts/state.js init --name "User auth design" --type design [--path full|fast]
+ *   node scripts/state.js init --name "User auth design" --type design
  *   node scripts/state.js show
  *   node scripts/state.js stage <name> <pending|in_progress|completed|failed|rolled_back>
+ *   node scripts/state.js skip <stage> --reason "<user approval, verbatim>"   # design stages only
  *   node scripts/state.js module <id> <design|submitted|approved|rejected|annotated>
  *   node scripts/state.js reject <id> --reason "Missing error handling"
  *   node scripts/state.js checkpoint <name> <pass|fail>
@@ -38,13 +39,20 @@ const { STAGES, DESIGN_ONLY_STAGES, route } = require('./lib/stages');
 // Imported rather than restated: the mandatory post-delivery stage list has one source of
 // truth, and a literal copy here is how the five restatements drifted apart before.
 const { MANDATORY_STAGES } = require('./lib/mandatory-stages');
-const STAGE_STATUS = ['pending', 'in_progress', 'completed', 'failed', 'rolled_back'];
+const STAGE_STATUS = ['pending', 'in_progress', 'completed', 'failed', 'rolled_back', 'skipped'];
 const MODULE_STATUS = ['design', 'submitted', 'approved', 'rejected', 'annotated'];
 const SUBTASK_STATUS = ['pending', 'in_progress', 'completed', 'failed'];
 // Ops step statuses. Leaner than yunwei_loop: no independent execution stage (HelloDev's
 // execution is within Implementation), no dead states like drift_detected/approval_expired —
 // expiry and invalidation are judged in real-time by verifyApproval at the gate.
 const OPS_STEP_STATUS = ['pending', 'awaiting_approval', 'approved', 'rejected', 'expired'];
+
+/** Plan-intent handoff artifact filename (A2). Written under .hello-dev/ by
+ * `decompose --plan-intent`; the state records only this relative name (never an
+ * absolute path), and `codex-prompt.js` reads it to build the sub-agent "## Context"
+ * block. The artifact carries the global design intent a side task would otherwise
+ * have to rediscover: layering, data flow, cross-cutting decisions with rationale. */
+const PLAN_INTENT_FILE = 'plan-intent.md';
 
 /** Minimum characters of `--reason` for a REQUIRED checkpoint. A length floor is a
  * discipline guard, not a semantic one: it stops `done`/`ok`/omission from closing a
@@ -170,6 +178,16 @@ function readState(root, lenient) {
       (s.retry.history !== undefined && (!Array.isArray(s.retry.history) || s.retry.history.some(h => !object(h) || !validId(h.module) || !stamp(h.at)))) ||
       (s.retry.extensions !== undefined && !Array.isArray(s.retry.extensions)) ||
       (s.blockedHistory !== undefined && !Array.isArray(s.blockedHistory))) fail('State metadata, counters, or time fields illegal');
+  // skipped section: consent-based stage skips.
+  // Backward compatible with the same policy as ops/collaboration: absent field means
+  // "no stage has been skipped", existing state still readable; once present, validate
+  // strictly — a skip without a reason would be an unauditable removal of a stage.
+  if (s.skipped !== undefined) {
+    if (!Array.isArray(s.skipped)) fail('skipped section must be an array');
+    if (s.skipped.some(x => !object(x) || !STAGES.includes(x.stage) ||
+        typeof x.reason !== 'string' || x.reason.length < REQUIRED_REASON_MIN || !stamp(x.at)))
+      fail('skipped entry format illegal: each entry needs a known stage, a substantive reason, and a timestamp');
+  }
   // ops section: execution intent approval.
   // **Backward compatible**: existing valid state in schema 1 doesn't have this field;
   // when reading, treat as "no ops steps" rather than error — state-protocol explicitly
@@ -247,6 +265,11 @@ function readState(root, lenient) {
       fail('decomposition time fields illegal');
     if (s.decomposition.dispatchMode !== undefined && !['serial', 'parallel'].includes(s.decomposition.dispatchMode))
       fail('decomposition dispatchMode must be serial or parallel');
+    if (s.decomposition.planIntentFile !== undefined &&
+        (typeof s.decomposition.planIntentFile !== 'string' ||
+          !s.decomposition.planIntentFile.trim() ||
+          path.basename(s.decomposition.planIntentFile) !== s.decomposition.planIntentFile))
+      fail('decomposition planIntentFile must be a bare filename (no directory component)');
     if (s.decomposition.tasks.some(t => !object(t) || !validId(t.id) ||
         typeof t.name !== 'string' || !t.name.trim() ||
         !Array.isArray(t.depends) || !SUBTASK_STATUS.includes(t.status) ||
@@ -356,6 +379,13 @@ function completed(s, stage) {
   return h && h.status === 'completed';
 }
 function completionAllowed(s, name) {
+  // A skipped stage is out of the route entirely (route() filters it); it can never
+  // be reached by `stage <name> completed`, so reaching this function for a skipped
+  // stage means route and cmdStage disagree — fail loudly rather than let a skipped
+  // stage be re-completed with stale evidence.
+  if (Array.isArray(s.skipped) && s.skipped.some(x => x.stage === name)) {
+    fail(`Stage ${name} was skipped with recorded user approval; it cannot be completed. If it must be executed, restore a trusted backup state.`);
+  }
   const current = s.checkpoints.slice(s.stage.checkpointStart || 0).filter(c => c.stage === name);
   const latest = new Map(current.map(c => [c.name, c]));
   if ([...latest.values()].some(c => c.result !== 'pass')) fail('Current stage still has unpassed checkpoints');
@@ -488,7 +518,14 @@ function cmdInit(args) {
   const { flags } = args;
   const name = text(flags.name, '--name');
   const type = flags.type || 'other';
-  if (flags.path !== undefined && !['full', 'fast'].includes(flags.path)) fail('--path must be full|fast');
+  // --path is retired: the route is always the full chain. Retained only to give a
+  // targeted error instead of a generic "unknown option", because historical docs
+  // and muscle memory still say `--path fast`.
+  if (flags.path !== undefined) {
+    fail('--path is retired: every task starts on the full 15-stage chain. ' +
+      'When a design stage is unnecessary, propose it at the stage boundary and ' +
+      'record the skip after user approval: node scripts/state.js skip <stage> --reason "..."');
+  }
   if (!['design', 'implementation', 'other'].includes(type)) fail(`--type must be design|implementation|other, got ${type}`);
 
   let root = findRoot();
@@ -502,8 +539,12 @@ function cmdInit(args) {
       id: 'dl-' + Date.now().toString(36),
       name,
       type,
-      path: flags.path === 'fast' ? 'fast' : 'full',
+      // The route is always the full chain; any reduction is a recorded skip (see
+      // `skip` command). Kept as a field for backward-compatible readers.
+      path: 'full',
     },
+    // Stages the user explicitly approved to skip. Absent means none.
+    skipped: [],
     stage: { current: STAGES[0], status: 'in_progress', history: [], attempt: 1, checkpointStart: 0 },
     modules: {},
     retry: { perModuleMax: RETRY.perModuleMax, totalMax: RETRY.totalMax, perModule: {}, total: 0 },
@@ -519,7 +560,7 @@ function cmdInit(args) {
   };
   const written = write(root, state);
   console.log(`[OK] State initialized: ${written}`);
-  console.log(`   Task: ${name} (${type} / ${state.task.path} flow)`);
+  console.log(`   Task: ${name} (${type} / full chain)`);
   console.log(`   Current stage: ${state.stage.current}`);
 }
 
@@ -527,9 +568,14 @@ function cmdShow() {
   const root = requireRoot();
   const s = read(root);
   const done = route(s).filter(stage => completed(s, stage)).length;
-  console.log(`\nTask: ${s.task.name}  [${s.task.type} / ${s.task.path}]`);
+  const skipped = Array.isArray(s.skipped) ? s.skipped : [];
+  console.log(`\nTask: ${s.task.name}  [${s.task.type} / full chain]`);
   console.log(`State file: ${statePath(root, TASK_ID)}`);
-  console.log(`Current stage: ${s.stage.current} (${s.stage.status})   Completed stages: ${done}/${route(s).length}`);
+  console.log(`Current stage: ${s.stage.current} (${s.stage.status})   Completed stages: ${done}/${route(s).length}` +
+    (skipped.length ? `   Skipped: ${skipped.length}` : ''));
+  // Skipped stages must be visible (tool-research finding B): a skip that only lives
+  // in the file is an audit blind spot — the reader must see what was removed and why.
+  for (const k of skipped) console.log(`  [SKIPPED] ${k.stage}  (${k.at.slice(0, 10)})  ${k.reason}`);
   if (s.blocked) console.log(`[BLOCKED] ${s.blocked}`);
   if (Object.keys(s.modules).length) {
     console.log('\nModule approvals:');
@@ -563,6 +609,10 @@ function cmdStage(args) {
   if (!STAGE_STATUS.includes(status)) fail(`Unknown status "${status}", options: ${STAGE_STATUS.join(', ')}`);
   const s = read(root);
   const stages = route(s);
+  if (Array.isArray(s.skipped) && s.skipped.some(x => x.stage === name)) {
+    fail(`Stage ${name} was skipped with recorded user approval; it is out of the execution path. ` +
+      `To execute it, restore a trusted backup state.`);
+  }
   const target = stages.indexOf(name);
   const current = stages.indexOf(s.stage.current);
   if (target < 0) fail(`Stage ${name} is not in current execution path`);
@@ -598,6 +648,72 @@ function cmdStage(args) {
   }
   write(root, s);
   console.log(`[OK] Stage ${name} -> ${status}`);
+}
+
+/**
+ * Consent-based stage skip.
+ *
+ * The agent proposes a skip at the stage boundary (current stage completed, next
+ * not yet in progress) with a recommendation; this command records the skip only
+ * after the user approves. The reason must quote the user's approval verbatim and
+ * clear the same length floor as an authorization-gate checkpoint: a skip without
+ * an auditable basis is exactly the silent routing decision this mechanism
+ * replaces. Only the design-only stages are skippable, and only while unfinished —
+ * a completed stage carries evidence that a skip cannot retroactively replace.
+ *
+ * Semantics: route() filters the stage out of the execution path, so `stage
+ * <name> ...`, resume and show all agree it does not exist. There is no unskip:
+ * the approval was one-time, and it survives rollback of later stages. To
+ * actually execute a skipped stage, restore a trusted backup state.
+ */
+function cmdSkip(args) {
+  const root = requireRoot();
+  const [name] = args.positional;
+  if (!STAGES.includes(name)) fail(`Unknown stage "${name}", options: ${STAGES.join(', ')}`);
+  if (!DESIGN_ONLY_STAGES.includes(name)) {
+    fail(`Stage ${name} is not skippable: only ${DESIGN_ONLY_STAGES.join(', ')} may be skipped. ` +
+      `Authorization gates (bootstrap, initialization, requirement), evidence gates (testing, review), ` +
+      `ship and the four post-delivery stages are mandatory on every path.`);
+  }
+  const reason = text(args.flags.reason, '--reason');
+  if (reason.length < REQUIRED_REASON_MIN) {
+    fail(`Skip requires a substantive --reason (got ${reason.length} chars, need at least ${REQUIRED_REASON_MIN}): ` +
+      `quote the user's approval verbatim, e.g. --reason "User approved: skip tool-research, no new dependencies to research"`);
+  }
+  const s = read(root);
+  if (Array.isArray(s.skipped) && s.skipped.some(x => x.stage === name)) fail(`Stage ${name} is already skipped`);
+  if (completed(s, name)) fail(`Stage ${name} already completed; a skip cannot replace recorded evidence`);
+  if (s.stage.current === name && s.stage.status === 'completed') fail(`Stage ${name} already completed`);
+  // Must be proposed at a stage boundary or inside the stage itself, before work
+  // that depends on the stage's outcome exists.
+  const stages = route(s);
+  const at = stages.indexOf(s.stage.current);
+  if (at < 0) fail(`Current stage ${s.stage.current} is not in the execution path`);
+  if (s.stage.status === 'in_progress' && s.stage.current === name) {
+    if (s.checkpoints.slice(s.stage.checkpointStart || 0).some(c => c.stage === name)) {
+      fail(`Stage ${name} is in progress with recorded checkpoints; a skip after work started would discard that evidence. ` +
+        `Finish the stage, or roll it back first.`);
+    }
+  }
+  s.skipped = Array.isArray(s.skipped) ? s.skipped : [];
+  s.skipped.push({ stage: name, reason, at: now() });
+  // Advance to the next active stage when the current one was skipped, so the
+  // session lands on a valid stage instead of a stage that no longer exists.
+  if (s.stage.current === name) {
+    const next = stages.filter(x => !s.skipped.some(k => k.stage === x)).find(x => stages.indexOf(x) > at);
+    if (next) {
+      s.stage.current = next;
+      s.stage.attempt = (s.stage.attempt || 0) + 1;
+      s.stage.checkpointStart = s.checkpoints.length;
+      s.stage.status = 'pending';
+      s.stage.history.push({ stage: name, status: 'skipped', at: now() });
+    }
+  }
+  write(root, s);
+  console.log(`[OK] Stage ${name} -> skipped (user-approved)`);
+  console.log(`   Reason: ${reason}`);
+  const remaining = route(s);
+  console.log(`   Route now: ${remaining.length} stages (skipped total: ${s.skipped.length})`);
 }
 
 function cmdModule(args) {
@@ -675,7 +791,7 @@ function cmdResume() {
   const idx = stages.indexOf(s.stage.current);
   const remaining = stages.slice(idx + 1);
   console.log('\n=== HelloDev Session Resume ===');
-  console.log(`Task: ${s.task.name}  [${s.task.type} / ${s.task.path}]`);
+  console.log(`Task: ${s.task.name}  [${s.task.type} / full chain]`);
   console.log(`Stage: ${s.stage.current} (${s.stage.status})`);
   if (s.blocked) console.log(`[BLOCKED] ${s.blocked}`);
   if (s.retry.exceeded) console.log(`[WARN] Retry limit exceeded (${s.retry.exceeded.at.slice(0, 10)}), generate contrast report first`);
@@ -688,6 +804,11 @@ function cmdResume() {
   if (openCp.length) {
     console.log('\nUnpassed checkpoints:');
     for (const c of openCp) console.log(`  ${c.at.slice(0, 10)} ${c.name} — ${c.result}`);
+  }
+  const skipped = Array.isArray(s.skipped) ? s.skipped : [];
+  if (skipped.length) {
+    console.log('\nSkipped stages (user-approved):');
+    for (const k of skipped) console.log(`  ${k.stage} — ${k.reason}`);
   }
   console.log('\nNext steps:');
   if (s.blocked) console.log('  1. Resolve blocking items first, then continue');
@@ -1084,6 +1205,16 @@ function cmdDecompose(args) {
   catch (e) { fail(`--tasks must be a valid JSON array: ${e.message}`); }
   if (!Array.isArray(tasks) || !tasks.length) fail('--tasks must be a non-empty JSON array');
 
+  // Optional plan-intent handoff artifact (A2). The main agent writes the global design
+  // intent -- layering, data flow, cross-cutting decisions -- to a standalone markdown
+  // file under .hello-dev/, and the state records only its path. Sub-agent prompts inject
+  // the file's content (codex-prompt.js builds the "## Context" block from it), so the
+  // side task receives the "why" behind the design, not just the file list. Kept as a
+  // separate file rather than an inline state field because a half-page markdown design
+  // intent is unreadable when JSON-escaped onto one line.
+  const planIntent = args.flags['plan-intent'] !== undefined ? String(args.flags['plan-intent']) : null;
+  if (planIntent !== null && !planIntent.trim()) fail('--plan-intent must be non-empty when given');
+
   // Validate each subtask
   const ids = new Set();
   for (const t of tasks) {
@@ -1169,10 +1300,17 @@ function cmdDecompose(args) {
     fail('Decomposition already exists; use --replace true to overwrite, or decompose-clear first');
   }
   s.decomposition = {
-    // Default is `parallel`: every wave the analysis marks parallel MUST be dispatched to
-    // sub-agents rather than executed by the main agent. `serial` remains available as an
-    // explicit escape hatch (record the reason), but it is no longer the default.
-    dispatchMode: 'parallel',
+    // Default is `serial`: the main agent executes subtasks sequentially unless parallel
+    // dispatch is explicitly opted into (`dispatch-mode parallel`). Rationale (see
+    // decomposition.md "When to Use Parallel Dispatch"): code-modifying subtasks are the
+    // risk case for parallel dispatch -- sub-agents inherit no architecture context, and
+    // file-conflict detection can only narrow a wave after affectedFiles are declared.
+    // Every read site already falls back to `serial` (`dispatchMode || 'serial'`), so this
+    // aligns the write default with the read default instead of forcing `||` fallbacks to
+    // paper over a mismatch. `parallel` remains a recorded, explicit opt-in: the mandatory
+    // dispatch gate still requires every parallel wave to carry a `dispatch` or
+    // `dispatch-waive` record once `dispatch-mode parallel` is set.
+    dispatchMode: 'serial',
     tasks: tasks.map(t => ({
       id: t.id, name: t.name.trim(), depends: t.depends,
       status: 'pending', estimate: t.estimate || null,
@@ -1186,6 +1324,14 @@ function cmdDecompose(args) {
     createdAt: now(),
     updatedAt: now(),
   };
+  // Plan-intent artifact: write the markdown file first, then record its path. Only for
+  // the fine (non-coarse) decomposition -- the coarse plan is a planning step, not a
+  // dispatch input, and has no sub-agent prompts to inject into.
+  if (planIntent !== null && !coarse) {
+    const intentPath = path.join(root, DIR, PLAN_INTENT_FILE);
+    fs.writeFileSync(intentPath, planIntent.trim() + '\n', 'utf8');
+    s.decomposition.planIntentFile = PLAN_INTENT_FILE;
+  }
   write(root, s);
   console.log(`[OK] Decomposition complete: ${tasks.length} subtasks, ${waves.length} waves`);
   for (const w of waves) {
@@ -1517,7 +1663,7 @@ function cmdValidate() {
 /* ---------- Entry ---------- */
 
 const COMMANDS = {
-  init: cmdInit, show: cmdShow, status: cmdShow, stage: cmdStage, module: cmdModule,
+  init: cmdInit, show: cmdShow, status: cmdShow, stage: cmdStage, skip: cmdSkip, module: cmdModule,
   reject: cmdReject, 'retry-resume': cmdRetryResume, checkpoint: cmdCheckpoint, resume: cmdResume, report: cmdReport, validate: cmdValidate,
   block: cmdBlock, unblock: cmdUnblock, gitdec: cmdGitDecision, finalize: cmdArchive, archive: cmdArchive,
   collab: cmdCollab,
@@ -1576,7 +1722,7 @@ const cmd = argv[scan];
 
 if (!cmd || !Object.hasOwn(COMMANDS, cmd)) {
   console.log('Hello Dev State file protocol - Available commands:\n');
-  console.log('  init --name "<task-name>" --type <design|implementation|other> [--path full|fast] [--task <id>]');
+  console.log('  init --name "<task-name>" --type <design|implementation|other> [--task <id>]');
   console.log('  --task <id>  select parallel task state file .hello-dev/state.sibling-<id>.json;');
   console.log('               defaults to state.json. Omitting --task behaves exactly as before.');
   console.log('  show | resume | report | validate | finalize');
@@ -1588,15 +1734,16 @@ if (!cmd || !Object.hasOwn(COMMANDS, cmd)) {
   console.log('  opsStatus [ID...]   # gate: verify step executable (expired/invalid returns non-0)');
   console.log('  opsShow [ID]        # show stepDigest for user to verify and fill --confirm-digest');
   console.log('  stage <name> <pending|in_progress|completed|failed|rolled_back>');
+  console.log('  skip <stage> --reason "<user approval, verbatim>"   # consent-based skip; design stages only');
   console.log('  module <id> <design|submitted|approved|annotated> [--reason "approval basis"]');
   console.log('  reject <id> --reason "..."');
   console.log('  checkpoint <name> <pass|fail> [--reason "evidence"]');
   console.log('  retry-resume --reason "user authorization to continue"');
   console.log('  collab [detect|show]   # collaboration: detect skills and snapshot, show reads (default)');
-  console.log('  decompose --tasks \'[{"id":"t1","name":"...","depends":[],"affectedFiles":[]}]\' [--replace]   # task decomposition');
+  console.log('  decompose --tasks \'[{"id":"t1","name":"...","depends":[],"affectedFiles":[]}]\' [--replace] [--plan-intent "<markdown>"]   # task decomposition; plan-intent writes .hello-dev/plan-intent.md for sub-agent prompts');
   console.log('  decompose --coarse true --tasks \'[{"id":"c1","name":"...","depends":[]}]\'   # coarse (initialization) plan; no dispatch obligation');
   console.log('  decompose-clear          # clear decomposition');
-  console.log('  dispatch-mode [serial|parallel]   # set or view sub-agent dispatch mode (default parallel)');
+  console.log('  dispatch-mode [serial|parallel]   # set or view sub-agent dispatch mode (default serial; parallel is explicit opt-in)');
   console.log('  dispatch --wave <n> --subtasks <ids> --agent <name>   # record a sub-agent dispatch for a parallel wave');
   console.log('  dispatch-waive --wave <n> --reason "..."   # authorize serial execution for a parallel wave');
   console.log('  dispatch-plan            # show mandatory dispatch plan and outstanding waves');
@@ -1628,12 +1775,12 @@ try {
   }
   const spec = {
     init: [0, 0, ['name', 'type', 'path']],
-    stage: [2, 2, []], module: [2, 2, ['reason']],
+    stage: [2, 2, []], skip: [1, 1, ['reason']], module: [2, 2, ['reason']],
     reject: [1, 1, ['reason']], 'retry-resume': [0, 0, ['reason']],
     checkpoint: [2, 2, ['reason']], block: [0, Infinity, ['reason']],
     unblock: [1, Infinity, []], gitdec: [1, 1, ['reason']],
     collab: [0, 1, []],
-    decompose: [0, 0, ['tasks', 'replace', 'coarse']],
+    decompose: [0, 0, ['tasks', 'replace', 'coarse', 'plan-intent']],
     'decompose-clear': [0, 0, []],
     'dispatch-mode': [0, 1, []],
     dispatch: [0, 0, ['wave', 'subtasks', 'agent']],

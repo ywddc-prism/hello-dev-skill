@@ -26,18 +26,19 @@ Each stage has 5 possible statuses:
 STAGE_STATUS = ['pending', 'in_progress', 'completed', 'failed', 'rolled_back']
 ```
 
-### Execution Paths
+### Execution Path
 
-Two execution paths determine which stages are active:
+There is one execution path: the full 15-stage chain — **All 15 stages**:
 
-| Path | Trigger | Active Stages |
-|------|---------|---------------|
-| `full` | `--type design --path full` | All 15 stages |
-| `fast` / `implementation` / `other` | Default for non-design tasks | 11 stages (skips the five design-only stages) |
+```text
+bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
+```
 
-The `route()` function in `state.js` implements this:
-- `full` path: all STAGES
-- Other paths: `STAGES.filter(x => !DESIGN_ONLY_STAGES.includes(x))`
+Design-stage reduction happens only through a recorded, user-approved skip (`state.js skip`), never through a second declared chain.
+
+The `route()` function in `scripts/lib/stages.js` implements this:
+- Current states (field `skipped` present): all STAGES minus the recorded skips
+- Legacy states (field absent): the old `type=design && path=full` filter, preserved so states written under the retired contract still read correctly
 
 ### Stage-to-Task Mapping
 
@@ -79,14 +80,11 @@ After `state.js init` succeeds, the main agent must:
 4. All subsequent stages start as `pending`.
 
 ```
-# Pseudocode for initialization
-state.js init --name "..." --type <type> --path <path>
+# Pseudocode for initialization (full chain is the only chain)
+state.js init --name "..." --type <type>
 
-# Determine active stages
-if path == "full":
-  stages = [bootstrap, initialization, requirement, tool-research, feature-design, architecture, prototype, implementation, testing, review, ship, learn, evolution, reflection, archive]
-else:
-  stages = [bootstrap, initialization, requirement, implementation, testing, review, ship, learn, evolution, reflection, archive]
+# Determine active stages: full chain minus recorded user-approved skips
+stages = route(state)  # scripts/lib/stages.js route(): STAGES filtered by state.skipped
 
 # Create WorkBuddy tasks
 for stage in stages:

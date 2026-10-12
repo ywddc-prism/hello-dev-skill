@@ -14,7 +14,7 @@ Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design ->
   PASS  -> proceeds through the four mandatory post-delivery stages
   FAIL  -> ROLLBACK to the failed stage
 
-**Full Flow has 15 stages (11 on the non-full paths)**.
+**Full Flow has 15 stages — the only chain; design stages are skipped only via recorded, user-approved `state.js skip`.**
 
 ## Three Key Principles
 
@@ -31,10 +31,10 @@ Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design ->
 | Bootstrap | Initialization, check context | all | No |
 | Initialization | Scope survey and coarse decomposition | all | No |
 | Requirement | Answer all key questions | all | No (unless user already confirmed or gave explicit execution authorization) |
-| Feature Design | Feature detail design | design/full | Yes on non-full paths |
-| Tool Research | Technology selection when needed | design/full | Yes on non-full paths |
-| Architecture | Requirements-based design | design/full | Yes on non-full paths |
-| Prototype | Interleaved UX+UI convergence with a runnable prototype | design/full | Yes on non-full paths |
+| Feature Design | Feature detail design | all | Yes (via recorded user-approved skip) |
+| Tool Research | Technology selection when needed | all | Yes (via recorded user-approved skip) |
+| Architecture | Requirements-based design | all | Yes (via recorded user-approved skip) |
+| Prototype | Interleaved UX+UI convergence with a runnable prototype | all | Yes (via recorded user-approved skip) |
 | Implementation | Code implementation | all | No |
 | Testing | Real environment verification | all | No |
 | Review | Consistency check | all | No |

@@ -149,8 +149,12 @@ node scripts/codex-prompt.js wave --wave 1 --task <id> --project "my-app" --proj
    already-measured facts and baselines, and the off-limits list with reasons. This is constraint 7
    of `decomposition.md` Sub-Agent Constraints. One-line dispatches and "based on your findings" are
    prohibited -- they outsource understanding. Adequacy test: the side task can locate the change
-   without any additional search. Note that `codex-prompt.js` does not emit a Context block today, so
-   manual customization must add it.
+   without any additional search. `codex-prompt.js` now emits the `## Context (already established
+   -- do not re-derive)` block itself: it injects the plan-intent artifact (`.hello-dev/plan-intent.md`,
+   written by `state.js decompose --plan-intent`) verbatim when one exists, and otherwise fills the
+   block with the working directory, the off-limits rule, and an explicit "design intent not
+   recorded" note. Manual customization is only needed for per-subtask line anchors and verbatim
+   change text -- the artifact covers the global rationale.
 
 ### Prompt Template
 
@@ -295,14 +299,11 @@ Execution order (the single source is `scripts/lib/stages.js`; `scripts/state.js
 bootstrap -> initialization -> requirement -> tool-research -> feature-design -> architecture -> prototype -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
 ```
 
-```text
-bootstrap -> initialization -> requirement -> implementation -> testing -> review -> ship -> learn -> evolution -> reflection -> archive
-```
-
-The first chain is `--type design --path full`; the second is every other path. `initialization`
-runs on **both** (it is the session's first planning step); the four design-only stages
-(`feature-design`, `tool-research`, `architecture`, `prototype`) are skipped outside
-the full path.
+This is the only chain: every task starts on it. `initialization` is the session's first
+planning step. When a design-only stage (`tool-research`, `feature-design`, `architecture`,
+`prototype`) is unnecessary, the main agent proposes skipping it at the stage boundary and
+records it with `node scripts/state.js skip <stage> --reason "<user approval, verbatim>"`
+after the user approves — there is no second, shorter declared chain.
 
 Codex provides a thread system visible in the sidebar. Hello Dev has its own state machine with 15 stages and 5 status values, persisted in `.hello-dev/state.json`. This section defines how the main agent can **optionally** reflect Hello Dev's stage progress into Codex thread titles or metadata, so the user can track the HelloDev process from the sidebar.
 

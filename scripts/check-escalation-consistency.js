@@ -157,6 +157,14 @@ function listTextFiles() {
       if (st.isDirectory()) { walk(abs); continue; }
       if (!/\.(md|js|sh|yml|json)$/.test(entry)) continue;
       if (entry === SELF) continue; // this guard necessarily names the defect vocabulary
+      // Every guard's source necessarily embeds its own marker vocabulary (and may
+      // reference a sibling guard's markers when the two are designed to interlock),
+      // so a guard's source is metadata ABOUT markers -- not a document that claims to
+      // be the single source of any rule. Excluding by basename keeps this extensible:
+      // a future guard is covered without editing this list. Self-exclusion here is
+      // sound because Check A independently asserts each marker still matches at least
+      // one real file, so a ghost marker cannot hide behind this exclusion.
+      if (/^check-.*\.(js|sh)$/.test(entry)) continue;
       // Test fixtures necessarily quote the defect vocabulary in order to inject it.
       // Scanning them makes the guard fail on its own test suite -- the same
       // self-poisoning failure as reading .hello-dev/state.json. Fixtures are not documents.

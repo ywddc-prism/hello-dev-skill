@@ -30,9 +30,9 @@ function no(...args) {
  if (before !== null) assert.equal(fs.readFileSync(file, 'utf8'), before, 'Rejected command changed state');
  checks++;
 }
-function project(name, type = 'implementation', route = 'full') {
+function project(name, type = 'implementation') {
  cwd = path.join(tmp, name); fs.mkdirSync(cwd);
- ok('init', '--name', name, '--type', type, '--path', route);
+ ok('init', '--name', name, '--type', type);
 }
 function cp(name, result = 'pass') { ok('checkpoint', name, result, '--reason', 'Isolated CLI test evidence for this checkpoint, recorded during the automated run'); }
 function beginRequirement() {
@@ -47,6 +47,14 @@ function confirm() {
  cp('Requirement confirmed');
  cp('Decomposition plan');
  ok('stage', 'requirement', 'completed');
+}
+// Under the full-chain default, a non-design task must reach implementation by
+// recording user-approved skips of the four design stages -- exactly the consent
+// mechanism that replaced the retired `--path fast` auto-filter.
+function skipDesignStages() {
+ for (const s of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+   ok('skip', s, '--reason', 'User approved: skip design stage, plan already confirmed for this implementation task');
+ }
 }
 function qualityStage(name, evidence) {
  ok('stage', name, 'in_progress');
@@ -68,6 +76,7 @@ try {
  no('stage', 'requirement', 'completed'); // missing decomposition plan
  cp('Decomposition plan');
  confirm();
+ skipDesignStages();
  no('stage', 'architecture', 'in_progress');
  ok('stage', 'implementation', 'in_progress');
  ok('block', 'Waiting for scope'); no('stage', 'implementation', 'completed');
@@ -150,7 +159,16 @@ try {
  ok('module', 'legacy', 'approved', '--reason', 'User approved legacy migration');
  ok('stage', 'feature-design', 'completed');
 
- project('fast', 'design', 'fast'); beginRequirement(); confirm();
+ // Legacy fast state: `--path` is retired on init, but states written under the old
+ // contract still exist and must keep their 11-stage route (they never scheduled
+ // design stages). Write such a state by hand, then continue.
+ project('legacy-fast'); beginRequirement(); confirm();
+ {
+ const f = path.join(cwd, '.hello-dev/state.json');
+ const cur = JSON.parse(fs.readFileSync(f, 'utf8'));
+ cur.skipped = undefined; cur.task.path = 'fast';
+ fs.writeFileSync(f, JSON.stringify(cur));
+ }
  ok('stage', 'implementation', 'in_progress');
  assert.doesNotMatch(ok('resume'), /tool-research|feature-design|architecture/);
  // Existing locks fail closed. Automatic stale-lock reclamation cannot be made safe with
@@ -220,7 +238,7 @@ try {
  }
  assert.ok(!fs.existsSync(path.join(cwd, '.hello-dev/state.lock')), 'Successful contention round must leave no lock behind');
  }
- for (const args of [ ['init', '--name'], ['init', '--name', 'x', '--path', 'unknown'], ['checkpoint', '', 'pass'], ['checkpoint', 'x', 'invalid'], ['reject', 'x', '--reason'], ['module', 'constructor', 'submitted'] ]) no(...args);
+ for (const args of [ ['init', '--name'], ['init', '--name', 'x', '--path', 'full'], ['checkpoint', '', 'pass'], ['checkpoint', 'x', 'invalid'], ['reject', 'x', '--reason'], ['module', 'constructor', 'submitted'] ]) no(...args);
  no('toString'); no('constructor'); no('checkpoint', 'oversized', 'pass', '--reason', 'x'.repeat(4097));
  no('gitdec', 'approved', '--reason'); no('checkpoint', 'valid', 'pass', '--unknown', 'x');
  no('checkpoint', 'valid', 'pass', 'extra');
@@ -235,7 +253,7 @@ try {
  // Each assertion checks both "target was changed" and "main task was not changed".
  {
  const mainBefore = fs.readFileSync(path.join(cwd, '.hello-dev/state.json'), 'utf8');
- ok('init', '--task', 'p1', '--name', 'Parallel task', '--type', 'design', '--path', 'full');
+ ok('init', '--task', 'p1', '--name', 'Parallel task', '--type', 'design');
  assert.equal(fs.existsSync(path.join(cwd, '.hello-dev/state.sibling-p1.json')), true, 'should create sibling state file'); checks++;
 
  // --task before or after command must be equivalent (requireRoot error teaches leading syntax).
@@ -355,7 +373,7 @@ try {
  for (const t of ['lockA', 'lockB']) {
  if (!fs.existsSync(path.join(dir, `state.sibling-${t}.json`))) {
  assert.equal(run('init', '--task', t, '--name', `parallel-${t}`,
- '--type', 'implementation', '--path', 'fast').code, 0, `create ${t} failed`);
+ '--type', 'implementation').code, 0, `create ${t} failed`);
  checks++;
  }
  }
@@ -447,6 +465,7 @@ try {
  // decomposition: task decomposition and order table 
  project('decomp');
  beginRequirement(); confirm();
+ skipDesignStages();
  // Without decomposition, order should indicate so
  assert.match(ok('order'), /not yet decomposed/, 'should not have decomposition after init');
  // Valid decomposition with affectedFiles: t1 -> t2, t3 (concurrent) -> t4
@@ -472,18 +491,18 @@ try {
  // affectedFiles should be stored
  assert.deepEqual(decomp.tasks[0].affectedFiles, ['src/models/user.js']);
  assert.deepEqual(decomp.tasks[1].affectedFiles, ['src/api/user.js']);
- // dispatchMode defaults to parallel: every parallel group must be dispatched to a
- // sub-agent, so parallel is now the default and serial is the explicit escape hatch.
- assert.equal(decomp.dispatchMode, 'parallel');
- // dispatch-mode: view default
- assert.match(ok('dispatch-mode'), /parallel/);
- // dispatch-mode: serial remains available as an explicit opt-out
- ok('dispatch-mode', 'serial');
- assert.equal(state().decomposition.dispatchMode, 'serial');
+ // dispatchMode defaults to serial: the main agent executes every subtask; parallel is
+ // an explicit opt-in (every read site falls back to `serial`, so write and read agree).
+ assert.equal(decomp.dispatchMode, 'serial');
+ // dispatch-mode: view default (serial)
  assert.match(ok('dispatch-mode'), /serial/);
- // dispatch-mode: set back to parallel (the default)
+ // dispatch-mode: parallel is an explicit opt-in
  ok('dispatch-mode', 'parallel');
  assert.equal(state().decomposition.dispatchMode, 'parallel');
+ assert.match(ok('dispatch-mode'), /parallel/);
+ // dispatch-mode: set back to serial (the default)
+ ok('dispatch-mode', 'serial');
+ assert.equal(state().decomposition.dispatchMode, 'serial');
  // dispatch-mode: invalid value must fail
  no('dispatch-mode', 'invalid');
  // dispatch-mode: without decomposition must fail
@@ -501,6 +520,26 @@ try {
  no('decompose', '--tasks', tasks);
  // --replace overwrites (needs value because parseArgs requires each flag to have a value)
  ok('decompose', '--tasks', tasks, '--replace', 'true');
+ // Plan-intent artifact (A2): --plan-intent writes .hello-dev/plan-intent.md and records
+ // the bare filename; codex-prompt.js injects the file's content into sub-agent prompts.
+ {
+ const intentText = 'Layering: controller -> service -> repository. Cross-cutting: disconnect cleanup via shield.';
+ ok('decompose', '--tasks', tasks, '--replace', 'true', '--plan-intent', intentText);
+ const decomp2 = state().decomposition;
+ assert.equal(decomp2.planIntentFile, 'plan-intent.md', 'decompose --plan-intent must record the bare filename');
+ const intentOnDisk = fs.readFileSync(path.join(cwd, '.hello-dev/plan-intent.md'), 'utf8');
+ assert.ok(intentOnDisk.includes(intentText), 'the artifact must contain the given markdown verbatim');
+ // A directory component is rejected by validate -- path traversal out of .hello-dev/.
+ const f2 = path.join(cwd, '.hello-dev/state.json');
+ const cur2 = JSON.parse(fs.readFileSync(f2, 'utf8'));
+ const savedIntent = cur2.decomposition.planIntentFile;
+ cur2.decomposition.planIntentFile = '../escape.md';
+ fs.writeFileSync(f2, JSON.stringify(cur2, null, 2));
+ no('validate');
+ cur2.decomposition.planIntentFile = savedIntent;
+ fs.writeFileSync(f2, JSON.stringify(cur2, null, 2));
+ ok('validate');
+ }
  // Subtask state transitions
  no('subtask', 't2', 'in_progress'); // t1 not completed, dependency not met
  no('subtask', 't1', 'completed'); // pending -> completed is illegal, must go through in_progress
@@ -701,45 +740,89 @@ try {
  // Malformed state should report a validation error, not an uncaught stack trace.
  fs.writeFileSync(path.join(cwd, '.hello-dev/state.json'), '{}');
  const invalid = run('validate'); assert.notEqual(invalid.code, 0); assert.doesNotMatch(invalid.out, /TypeError|at cmd/); checks++;
- // Reason length floor: the fast path lowers it for the four post-delivery retrospective
-// stages and for nothing else. Three boundaries are asserted, and the 11-char rejection is
-// the load-bearing one -- it proves the floor was lowered, not deleted. The same 12 chars
-// that settles `learn` on `fast` must still be refused on `full`, and `testing` (an evidence
-// gate) must keep the full floor on `fast`, because "tests went green but nothing was
-// verified" does not become less likely on a small task.
-project('floor-fast', 'implementation', 'fast'); beginRequirement(); confirm();
+ // Reason length floor: full-chain default means every task now runs the FULL floor
+// everywhere -- the old fast path's lowered floor (LITE_REASON_MIN for the four
+// retrospective stages) applies only to legacy states written under `path=fast`.
+// Both sides are asserted: 12 chars must still be refused for `learn` on a current
+// state (floor not silently dropped), and `testing` (an evidence gate) must keep the
+// full floor regardless, because "tests went green but nothing was verified" does not
+// become less likely on a small task.
+project('floor-full'); beginRequirement(); confirm();
+{
+ // Skip the design stages by hand: this is a state where the design work never ran,
+ // routed out by recorded skips -- the consent-based equivalent of the retired fast path.
+ const f = path.join(cwd, '.hello-dev/state.json');
+ const cur = JSON.parse(fs.readFileSync(f, 'utf8'));
+ for (const stage of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+   ok('skip', stage, '--reason', 'User approved: skip design stage, scope survey reports no design point');
+ }
+}
 ok('stage', 'implementation', 'in_progress'); ok('stage', 'implementation', 'completed');
 ok('stage', 'testing', 'in_progress');
 ok('checkpoint', 'Testing', 'pass', '--reason', 'x'.repeat(12));
 no('stage', 'testing', 'completed');
 assert.match(run('stage', 'testing', 'completed').out, /need at least 40 \(full path floor\)/,
- 'evidence gate must keep the full floor on the fast path'); checks++;
+ 'evidence gate must keep the full floor on the full path'); checks++;
 cp('Testing'); ok('stage', 'testing', 'completed');
 ok('stage', 'review', 'in_progress'); cp('Review'); ok('stage', 'review', 'completed');
 ok('stage', 'ship', 'in_progress'); ok('stage', 'ship', 'completed');
 ok('stage', 'learn', 'in_progress');
-// 11 chars is below the lowered floor -> still refused, and the message names the applied floor.
+// 11 chars is below the floor -> refused, and the message names the applied floor.
 ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(11));
 no('stage', 'learn', 'completed');
-assert.match(run('stage', 'learn', 'completed').out, /need at least 12 \(fast path floor\)/,
- 'the fast-path floor must be reported as the floor actually applied'); checks++;
-// 12 chars is at the lowered floor -> settles the checkpoint and completes the stage.
-ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(12));
-ok('stage', 'learn', 'completed');
-
-project('floor-full', 'implementation', 'full'); beginRequirement(); confirm();
-ok('stage', 'implementation', 'in_progress'); ok('stage', 'implementation', 'completed');
-ok('stage', 'testing', 'in_progress'); cp('Testing'); ok('stage', 'testing', 'completed');
-ok('stage', 'review', 'in_progress'); cp('Review'); ok('stage', 'review', 'completed');
-ok('stage', 'ship', 'in_progress'); ok('stage', 'ship', 'completed');
-ok('stage', 'learn', 'in_progress');
-// The same 12-char reason is refused on the full path, where the floor stays at 40.
-ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(12));
-no('stage', 'learn', 'completed');
 assert.match(run('stage', 'learn', 'completed').out, /need at least 40 \(full path floor\)/,
- 'the full path must keep the 40-char floor on a post-delivery stage'); checks++;
+ 'full-chain default: retrospective stages keep the full floor (no fast path to lower it)'); checks++;
+// 40 chars settles the checkpoint and completes the stage.
 ok('checkpoint', 'Learning summary', 'pass', '--reason', 'x'.repeat(40));
 ok('stage', 'learn', 'completed');
 
+// ---- Consent-based stage skip (route-filter mechanism) ----
+// Guards: skippable set, reason floor, not-already-skipped, not-completed,
+// evidence guard for in-progress stages, visibility in show/resume, and the
+// load-bearing one -- a skipped stage must be refused by `stage <name> ...`,
+// proving route() filters it rather than merely recording it.
+console.log('-- Consent-based stage skip --');
+project('skip-mech'); beginRequirement(); confirm();
+// Full route before any skip.
+assert.equal(JSON.parse(fs.readFileSync(path.join(cwd, '.hello-dev/state.json'), 'utf8')).skipped.length, 0);
+// Skip two design stages while pending (no checkpoints yet).
+ok('skip', 'tool-research', '--reason', 'User approved: skip tool-research, stack already fixed in architecture');
+ok('skip', 'feature-design', '--reason', 'User approved: skip feature-design, single module covered by architecture');
+// Route is now 13; skipped stages are refused by stage transitions.
+// `resume` must NOT list them as remaining stages, but MUST list them in the
+// skipped section (visibility requirement from tool-research finding B).
+const resumed0 = ok('resume');
+const subsequent = /Subsequent stages: (.*)/.exec(resumed0)[1];
+assert.ok(!subsequent.includes('tool-research'), 'skipped stage must not appear in remaining stages');
+assert.ok(!subsequent.includes('feature-design'), 'skipped stage must not appear in remaining stages');
+assert.match(resumed0, /Skipped stages \(user-approved\)/, 'resume must have a skipped section');
+assert.match(resumed0, /tool-research/, 'resume must list the skipped stage with its reason');
+no('stage', 'tool-research', 'in_progress');
+no('stage', 'feature-design', 'in_progress');
+// Visibility: show must print each skipped stage with its reason.
+const shown = ok('show');
+assert.match(shown, /Skipped: 2/, 'show must report skipped count');
+assert.match(shown, /tool-research/, 'show must list skipped stage names');
+// Skippable-set guard: non-design stages are never skippable.
+no('skip', 'requirement', '--reason', 'User approved: trying to skip an authorization gate which must never');
+no('skip', 'testing', '--reason', 'User approved: trying to skip an evidence gate which must never be skipped');
+no('skip', 'learn', '--reason', 'User approved: trying to skip a post-delivery retrospective stage here');
+// Reason floor.
+no('skip', 'architecture', '--reason', 'too short');
+// Already skipped.
+ok('skip', 'architecture', '--reason', 'User approved: skip architecture, no undecided design points remain');
+no('skip', 'architecture', '--reason', 'User approved: skip architecture again, should be rejected as duplicate');
+// Skipping the CURRENT in-progress stage with recorded checkpoints must be refused
+// (a skip after work started would discard evidence).
+ok('stage', 'prototype', 'in_progress');
+cp('Prototype converged');
+no('skip', 'prototype', '--reason', 'User approved: skip prototype after its work already produced checkpoints');
+// Completed stage: skip cannot replace recorded evidence.
+cp('Specifications extracted');
+ok('stage', 'prototype', 'completed');
+ok('stage', 'implementation', 'in_progress');
+no('skip', 'implementation', '--reason', 'User approved: skip implementation, which is not a design stage anyway');
+// Skipped stage cannot be completed even if somehow reached.
+no('stage', 'tool-research', 'completed');
 console.log(`state.js: ${checks} CLI assertions passed`);
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }

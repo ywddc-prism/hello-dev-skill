@@ -379,7 +379,7 @@ WorkBuddy 的专家中心提供了预配置的专家团：
 
 # 3. Hello Dev 会自动：
 # - Bootstrap：加载技能，检测环境
-# - Initialization：范围调查，判断执行路径
+# - Initialization：范围调查，粗粒度任务分解
 # - Requirement：确认 bug 复现步骤
 # - Implementation：定位并修复代码
 # - Testing：四层验证
@@ -428,12 +428,12 @@ WorkBuddy 的专家中心提供了预配置的专家团：
 
 #### 1. Bootstrap（启动）
 
-**职责**：加载技能，检测环境，确定执行路径。
+**职责**：加载技能，检测环境，确认范围。
 
 **交付物**：
 - 技能加载确认
 - 环境检测报告
-- 执行路径选择（tiny/fast/implementation/full）
+- 范围确认依据（全链是唯一执行路径；设计阶段仅可经记录在案的用户批准 `state.js skip` 跳过）
 
 **用户操作**：无（自动执行）
 
@@ -611,7 +611,7 @@ Hello Dev 的状态存储在 `.hello-dev/state.json`：
     "id": "dl-xxxx",
     "name": "任务名称",
     "type": "implementation",
-    "path": "fast"
+    "path": "full"
   },
   "stage": {
     "current": "implementation",
@@ -652,7 +652,7 @@ Hello Dev 的状态存储在 `.hello-dev/state.json`：
 
 ### Q2：我可以在小项目上使用 Hello Dev 吗？
 
-**A**：可以。Hello Dev 提供了 `tiny` 和 `fast` 两条轻量路径，适合小项目。`tiny` 路径执行与 `fast` 相同的 11 个阶段，由 lead agent 单独合并为四个阶段执行、不派发子 agent，适合单文件修改。
+**A**：可以。Hello Dev 走单一全链流程；小项目可用 `tiny` 模式，由 lead agent 单独把阶段合并为四个阶段执行、不派发子 agent，设计阶段在 scope survey 显示无未决设计点时经用户批准的 `state.js skip` 跳过，适合单文件修改。
 
 ### Q3：Hello Dev 支持哪些编程语言？
 

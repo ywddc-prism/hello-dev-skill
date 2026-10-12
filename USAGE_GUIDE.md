@@ -380,7 +380,7 @@ Please help me fix a bug: users occasionally get "session expired" error when lo
 
 # 3. Hello Dev will automatically:
 # - Bootstrap: Load skill, detect environment
-# - Initialization: Scope survey, determine execution path
+# - Initialization: Scope survey, coarse task decomposition
 # - Requirement: Confirm bug reproduction steps
 # - Implementation: Locate and fix code
 # - Testing: Four-layer verification
@@ -429,12 +429,12 @@ Please help me refactor the authentication module. Current code has high couplin
 
 #### 1. Bootstrap
 
-**Responsibility**: Load skill, detect environment, determine execution path.
+**Responsibility**: Load skill, detect environment, confirm scope.
 
 **Deliverables**:
 - Skill load confirmation
 - Environment detection report
-- Execution path selection (tiny/fast/implementation/full)
+- Scope confirmation basis (the full 15-stage chain is the only route; design stages are skipped only via recorded, user-approved `state.js skip`)
 
 **User Action**: None (auto-executed)
 
@@ -612,7 +612,7 @@ Hello Dev state is stored in `.hello-dev/state.json`:
     "id": "dl-xxxx",
     "name": "Task name",
     "type": "implementation",
-    "path": "fast"
+    "path": "full"
   },
   "stage": {
     "current": "implementation",
@@ -653,7 +653,7 @@ Memory is stored in `.hello-dev/memory.json`:
 
 ### Q2: Can I use Hello Dev on small projects?
 
-**A**: Yes. Hello Dev provides `tiny` and `fast` two lightweight paths, suitable for small projects. The `tiny` path runs the same 11 stages as `fast`, merged into four phases executed by the lead agent alone with no sub-agents spawned, and suits single-file modifications.
+**A**: Yes. Hello Dev runs a single full-chain flow; for small projects the `tiny` pattern merges the stages into four phases executed by the lead agent alone with no sub-agents spawned, and design stages are skipped only via recorded, user-approved `state.js skip` when the scope survey shows no design point. It suits single-file modifications.
 
 ### Q3: Which programming languages does Hello Dev support?
 

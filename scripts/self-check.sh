@@ -52,6 +52,8 @@ run "mandatory post-delivery stages" node scripts/test-stage-mandatory.js
 run "skill detector behavior" node scripts/test-detect-skills.js
 run "expert package completeness" node scripts/check-expert-package.js
 run "escalation criterion consistency" node scripts/check-escalation-consistency.js
+run "decomposition criterion consistency" node scripts/check-decomposition-consistency.js
+run "dispatch default wording" node scripts/check-dispatch-default.js
 run "guard regressions" node scripts/test-guards.js
 
 echo " 3. Gate Behavior "

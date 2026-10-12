@@ -27,7 +27,7 @@ node scripts/state.js stage requirement in_progress
 ```bash
 node scripts/state.js decompose --tasks '[{"id":"t1","name":"...","depends":[],"affectedFiles":["f1"]}]'
 node scripts/state.js dispatch-plan    # parallel groups are mandatory to dispatch
-node scripts/state.js dispatch-mode serial   # explicit opt-out; parallel is the default
+node scripts/state.js dispatch-mode parallel   # explicit opt-in; serial is the default (main agent executes all)
 node scripts/state.js dispatch --wave 2 --subtasks t2,t3 --agent <name>
 node scripts/state.js order
 ```

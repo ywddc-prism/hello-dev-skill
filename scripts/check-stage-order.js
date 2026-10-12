@@ -17,11 +17,18 @@
  * also passed. Measured both directions during the design pass.
  *
  * This guard compares each declared document against `scripts/lib/stages.js`, the single
- * source. It is deliberately **stronger than a union check**: for documents that must show
- * a specific projection (full chain vs non-full chain), it requires the chain to match
+ * source. It is deliberately **stronger than a union check**: it requires the chain to match
  * **verbatim**, including order. A union check would accept a document whose stages are all
  * present but reordered, which is exactly the "which comes first" question this framework
  * exists to answer.
+ *
+ * There is exactly ONE chain now: the full 15-stage chain. The former non-full (fast-path)
+ * chain is retired -- every task starts on the full chain and any reduction is a recorded,
+ * user-approved stage skip (state.js `skip`), never a second declared chain. So this guard
+ * does not just require the full chain to be *present* (substring): it requires every
+ * `bootstrap -> ...` claim to be *equal* to the full chain. A substring check would still
+ * accept the retired short chain, because the short chain is a contiguous substring of the
+ * full one -- measuring that direction was the design check for this guard's rewrite.
  *
  * Usage: node scripts/check-stage-order.js
  * Non-zero exit means at least one document disagrees with the state machine.
@@ -31,36 +38,30 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const { STAGES, DESIGN_ONLY_STAGES } = require('./lib/stages');
+const { STAGES } = require('./lib/stages');
 
-const SHORT = STAGES.filter(s => !DESIGN_ONLY_STAGES.includes(s));
 const title = s => s.split('-').map(w => (w === 'ux' ? 'UX' : w === 'ui' ? 'UI' : w[0].toUpperCase() + w.slice(1))).join(' ');
 const FULL_CHAIN = STAGES.join(' -> ');
-const SHORT_CHAIN = SHORT.join(' -> ');
 const FULL_TITLE_CHAIN = STAGES.map(title).join(' -> ');
-const SHORT_TITLE_CHAIN = SHORT.map(title).join(' -> ');
 
 /**
- * Documents that must state a full or non-full chain verbatim.
- * `mode`:
- *   'full'  — must contain the full chain (all stages, in order)
- *   'short' — must contain the non-full chain
- *   'any'   — must contain at least one of the two chains, verbatim
+ * Documents that must state the chain verbatim (the full chain is the only chain).
+ * Every site must contain the full chain; Check 2b then enforces that EVERY
+ * `bootstrap -> ...` claim in the file is *equal* to it.
  *
  * Chains are accepted in either separator form (`a -> b -> c` or `a, b, c`): the framework
  * uses arrows in prose and comma lists in code blocks, and forcing one form would be a
  * cosmetic edit with no drift-catching value. Order and membership are what matter.
  */
 const CHAIN_SITES = [
-  { file: 'README.md', mode: 'any' },
-  { file: 'README.zh-CN.md', mode: 'any' },
-  { file: 'SKILL.md', mode: 'any' },
-  { file: 'SKILL.zh-CN.md', mode: 'any' },
-  { file: 'modules/core/state-protocol.md', mode: 'any' },
-  { file: 'modules/paths/full-flow.md', mode: 'full' },
-  { file: 'modules/paths/fast-path.md', mode: 'short' },
-  { file: 'modules/hosts/workbuddy.md', mode: 'any' },
-  { file: 'modules/hosts/codex.md', mode: 'any' },
+  'README.md',
+  'README.zh-CN.md',
+  'SKILL.md',
+  'SKILL.zh-CN.md',
+  'modules/core/state-protocol.md',
+  'modules/paths/full-flow.md',
+  'modules/hosts/workbuddy.md',
+  'modules/hosts/codex.md',
 ];
 
 /** Documents that state a stage COUNT; the number must match the live counts. */
@@ -84,43 +85,41 @@ const strip = s => s.replace(/\*\*/g, '').replace(/`/g, '');
 
 /**
  * Normalise a chain for comparison: unify arrows (including `→`) and comma lists to a
- * single ` -> ` separator, collapse whitespace. Display-name form and slug form are both
- * accepted because the framework uses titles in prose and slugs in code; requiring one
- * form would force cosmetic rewrites of prose with no drift-catching value.
+ * single ` -> ` separator, collapse whitespace, and strip trailing sentence punctuation.
+ * Display-name form and slug form are both accepted because the framework uses titles in
+ * prose and slugs in code; requiring one form would force cosmetic rewrites of prose with
+ * no drift-catching value. Trailing punctuation matters because this is an EQUALITY
+ * comparison (Check 2b): a sentence like `... -> Archive.` ends with a period that must
+ * not make a correct chain fail.
  */
 function normalizeChain(s) {
   return strip(s)
     .replace(/\s*(?:->|→|-->)\s*/g, ' -> ')
     .replace(/\s*,\s*/g, ' -> ')
     .replace(/\s+/g, ' ')
+    .replace(/[.。;；:：、]+$/, '')
     .trim();
 }
 
-/** The normalised full/short chains, in both separator forms. */
+/** The normalised full chain, in both separator forms. */
 const FULL_NORM = normalizeChain(FULL_CHAIN);
-const SHORT_NORM = normalizeChain(SHORT_CHAIN);
 const FULL_TITLE_NORM = normalizeChain(FULL_TITLE_CHAIN);
-const SHORT_TITLE_NORM = normalizeChain(SHORT_TITLE_CHAIN);
 
 function containsChain(haystackNorm, chainNorm) {
   return haystackNorm.includes(chainNorm);
 }
 
 /* ---------- Check 1: declared chains match verbatim ---------- */
-for (const site of CHAIN_SITES) {
-  const p = path.join(ROOT, site.file);
-  if (!fs.existsSync(p)) { problems.push(`${site.file}: declared in CHAIN_SITES but the file does not exist`); continue; }
+for (const file of CHAIN_SITES) {
+  const p = path.join(ROOT, file);
+  if (!fs.existsSync(p)) { problems.push(`${file}: declared in CHAIN_SITES but the file does not exist`); continue; }
   const text = fs.readFileSync(p, 'utf8');
   const normLines = text.split(/\r?\n/).map(normalizeChain).join('\n');
   const full = containsChain(normLines, FULL_NORM) || containsChain(normLines, FULL_TITLE_NORM);
-  const short = containsChain(normLines, SHORT_NORM) || containsChain(normLines, SHORT_TITLE_NORM);
-  const ok = site.mode === 'full' ? full : site.mode === 'short' ? short : (full || short);
-  if (!ok) {
-    const expected = site.mode === 'full' ? 'the FULL chain'
-      : site.mode === 'short' ? 'the NON-FULL chain' : 'either the full or the non-full chain';
-    problems.push(`${site.file}: does not state ${expected} verbatim (order and membership must match scripts/lib/stages.js)`);
+  if (!full) {
+    problems.push(`${file}: does not state the full chain verbatim (order and membership must match scripts/lib/stages.js)`);
   }
-  checkedChains.push(site.file);
+  checkedChains.push(file);
 }
 
 /* ---------- Check 2: stage counts match ---------- */
@@ -129,7 +128,7 @@ for (const site of COUNT_SITES) {
   if (!fs.existsSync(p)) { problems.push(`${site.file}: declared in COUNT_SITES but the file does not exist`); continue; }
   const text = fs.readFileSync(p, 'utf8');
   if (!site.pattern.test(text)) {
-    problems.push(`${site.file}: expected the stage count marker "${site.label}" (full=${STAGES.length}, non-full=${SHORT.length})`);
+    problems.push(`${site.file}: expected the stage count marker "${site.label}" (the state machine has ${STAGES.length} stages)`);
   }
   checkedCounts.push(site.file);
 }
@@ -141,14 +140,16 @@ for (const site of COUNT_SITES) {
  * README's `# full:` line still passed while the table copy remained correct.
  *
  * So every line that contains a run of stage names linked by `->` and begins (after any
- * markdown prefix such as `# fast: `, `| \`fast\` | `, or `4. **Execute stages**: `) with
- * `bootstrap` is treated as a chain claim and must equal the full or the non-full chain
- * exactly. Lines that carry a placeholder (`[design stages]`) are illustrative summaries,
+ * markdown prefix such as `# full: `, `| \`full\` | `, or `4. **Execute stages**: `) with
+ * `bootstrap` is treated as a chain claim and must be EQUAL to the full chain. Equality,
+ * not substring: the retired short chain is a contiguous substring of the full one, so a
+ * substring check would keep accepting it — the exact hole this guard now closes.
+ * Lines that carry a placeholder (`[design stages]`) are illustrative summaries,
  * not claims, and are skipped.
  */
 const CHAIN_CLAIM = /(?:^|[\s|*>:`])(bootstrap)\s*(?:->|→)\s*[a-z]/i;
-for (const site of CHAIN_SITES) {
-  const p = path.join(ROOT, site.file);
+for (const file of CHAIN_SITES) {
+  const p = path.join(ROOT, file);
   if (!fs.existsSync(p)) continue;
   const lines = fs.readFileSync(p, 'utf8').split(/\r?\n/);
   lines.forEach((line, idx) => {
@@ -159,11 +160,24 @@ for (const site of CHAIN_SITES) {
     const norm = normalizeChain(line.slice(start));
     const parts = norm.split(' -> ').filter(Boolean);
     if (parts.length < 4) return;
-    const full = containsChain(norm, FULL_NORM) || containsChain(norm, FULL_TITLE_NORM);
-    const short = containsChain(norm, SHORT_NORM) || containsChain(norm, SHORT_TITLE_NORM);
-    if (!full && !short) {
+    // Truncate to the chain itself: the line may carry trailing table cells or a
+    // continuing sentence after the last stage (README table, SKILL prose). Equality
+    // must compare the chain segment, not the whole remainder of the line.
+    // Find the last stage token (slug OR display-title form) in the normalised line,
+    // then cut right after it — a single slug-based scan misses title-form chains.
+    let end = -1;
+    for (const stage of STAGES) {
+      const forms = [stage, title(stage)];
+      for (const form of forms) {
+        const at = norm.lastIndexOf(form);
+        if (at + form.length > end) end = at + form.length;
+      }
+    }
+    const segment = end >= 0 ? norm.slice(0, end) : norm;
+    const matchesFull = segment === FULL_NORM || segment === FULL_TITLE_NORM;
+    if (!matchesFull) {
       problems.push(
-        `${site.file}:${idx + 1}: this stage chain matches neither the full nor the non-full list ` +
+        `${file}:${idx + 1}: this stage chain does not match the full list ` +
         `(order and membership must match scripts/lib/stages.js)`
       );
     }
@@ -212,15 +226,13 @@ for (const file of walk(ROOT)) {
       .map(x => x[0]).filter(x => STAGES.includes(x));
     const dedup = inOrder.filter((x, i) => inOrder.indexOf(x) === i);
     const matchesFull = dedup.join(',') === STAGES.join(',');
-    const matchesShort = dedup.join(',') === SHORT.join(',');
-    if (!matchesFull && !matchesShort) {
+    if (!matchesFull) {
       // Report the first divergence so the fix is obvious without diffing by hand.
-      const liveList = matchesFull ? STAGES : (dedup.length <= SHORT.length ? SHORT : STAGES);
       let at = 0;
-      while (at < dedup.length && at < liveList.length && dedup[at] === liveList[at]) at++;
-      const detail = at < dedup.length || at < liveList.length
-        ? `first divergence at index ${at}: document has "${dedup[at] ?? '(end)'}", source has "${liveList[at] ?? '(end)'}"`
-        : 'membership differs from both the full and the non-full list';
+      while (at < dedup.length && at < STAGES.length && dedup[at] === STAGES[at]) at++;
+      const detail = at < dedup.length || at < STAGES.length
+        ? `first divergence at index ${at}: document has "${dedup[at] ?? '(end)'}", source has "${STAGES[at] ?? '(end)'}"`
+        : 'membership differs from the full list';
       problems.push(
         `${path.relative(ROOT, file)}: restates the stage list inline but it does not match the source (${detail}). ` +
         `Full list: scripts/lib/stages.js.`
@@ -258,11 +270,11 @@ for (const file of walk(ROOT)) {
     COUNT_CLAIM.lastIndex = 0;
     while ((m = COUNT_CLAIM.exec(line)) !== null) {
       const n = Number(m[1]);
-      if (n === STAGES.length || n === SHORT.length) continue;
+      if (n === STAGES.length) continue;
       if (HISTORY_MARKERS.test(line)) continue;
       problems.push(
-        `${rel}:${idx + 1}: asserts "${m[0]}" but the state machine has ${STAGES.length} stages ` +
-        `(${SHORT.length} on non-full paths). Fix the number, not this guard.`
+        `${rel}:${idx + 1}: asserts "${m[0]}" but the state machine has ${STAGES.length} stages. ` +
+        `Fix the number, not this guard.`
       );
     }
   });
@@ -272,10 +284,10 @@ for (const file of walk(ROOT)) {
 if (problems.length) {
   console.log('X Stage order drift detected:');
   for (const p of problems) console.log('  - ' + p);
-  console.log(`\n  Single source: scripts/lib/stages.js (${STAGES.length} stages: full ${STAGES.length}, non-full ${SHORT.length})`);
+  console.log(`\n  Single source: scripts/lib/stages.js (${STAGES.length} stages)`);
   console.log('  Fix the document, not this guard.');
   process.exit(1);
 }
 
-console.log(`[OK] Stage order consistent (${STAGES.length} stages: full ${STAGES.length}, non-full ${SHORT.length})`);
+console.log(`[OK] Stage order consistent (${STAGES.length} stages)`);
 console.log(`     chains verified: ${checkedChains.length} document(s); counts verified: ${checkedCounts.length} document(s)`);

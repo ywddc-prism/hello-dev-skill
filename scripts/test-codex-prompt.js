@@ -233,6 +233,69 @@ test('omitting --task keeps historical state.json behavior', function() {
   assert.strictEqual(data.tasks.length, 4, 'default path must still read state.json');
 });
 
+// ---- Plan-intent handoff (A2): Context block injection ----
+
+test('prompt always carries a Context block even with no plan-intent artifact', function() {
+  // Fixture state has no planIntentFile: the block must still appear (working dir +
+  // off-limits), so its absence is never ambiguous to the side task.
+  var r = run(['generate', '--subtask', 't1'], projDir);
+  assert.strictEqual(r.code, 0, 'exit 0; stderr=' + r.stderr);
+  var prompt = JSON.parse(r.stdout).prompt;
+  assert(prompt.indexOf('## Context (already established -- do not re-derive)') >= 0,
+    'Context block must always be emitted (codex.md prompt template requires it)');
+  assert(prompt.indexOf('none recorded') >= 0,
+    'without an artifact the block must say the design intent is not recorded, not omit the topic');
+});
+
+test('plan-intent artifact is injected verbatim into the Context block', function() {
+  // Write the artifact and point the state at it -- mirrors what `decompose --plan-intent`
+  // does in state.js (this suite builds fixtures by hand, it does not shell out to state.js).
+  var intent = 'Layering: controller -> service -> repository. Cross-cutting: prepare()/stream() separation.';
+  fs.writeFileSync(path.join(projDir, '.hello-dev', 'plan-intent.md'), intent + '\n');
+  var statePath = path.join(projDir, '.hello-dev', 'state.json');
+  var st = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  st.decomposition.planIntentFile = 'plan-intent.md';
+  fs.writeFileSync(statePath, JSON.stringify(st, null, 2));
+
+  var r = run(['generate', '--subtask', 't1'], projDir);
+  assert.strictEqual(r.code, 0, 'exit 0; stderr=' + r.stderr);
+  var prompt = JSON.parse(r.stdout).prompt;
+  assert(prompt.indexOf(intent) >= 0, 'prompt must contain the artifact text verbatim: ' + prompt.slice(prompt.indexOf('## Context'), prompt.indexOf('## Context') + 300));
+  assert(prompt.indexOf('plan-intent.md') >= 0, 'prompt must cite the artifact file so the side task knows the source');
+
+  // Wave mode must inject the same block (all prompts in a wave share one artifact).
+  var w = run(['wave', '--wave', '1'], projDir);
+  assert.strictEqual(w.code, 0, 'wave exit 0; stderr=' + w.stderr);
+  var waveData = JSON.parse(w.stdout);
+  waveData.tasks.forEach(function(t) {
+    assert(t.prompt.indexOf(intent) >= 0, 'wave prompt for ' + t.subtaskId + ' must carry the design intent');
+  });
+
+  // Restore the fixture to the no-artifact state for any later run order.
+  delete st.decomposition.planIntentFile;
+  fs.writeFileSync(statePath, JSON.stringify(st, null, 2));
+  fs.rmSync(path.join(projDir, '.hello-dev', 'plan-intent.md'), { force: true });
+});
+
+test('a directory component in planIntentFile is rejected, not followed', function() {
+  // state.js validate enforces the bare-filename rule; this reader must apply the same
+  // rule rather than reading an arbitrary path (a path traversal in the state would
+  // otherwise let a prompt pull content from outside .hello-dev/).
+  var statePath = path.join(projDir, '.hello-dev', 'state.json');
+  var st = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  st.decomposition.planIntentFile = '../outside.md';
+  fs.writeFileSync(statePath, JSON.stringify(st, null, 2));
+
+  var r = run(['generate', '--subtask', 't1'], projDir);
+  assert.strictEqual(r.code, 0, 'exit 0; stderr=' + r.stderr);
+  var prompt = JSON.parse(r.stdout).prompt;
+  assert(prompt.indexOf('none recorded') >= 0,
+    'a planIntentFile with a directory component must be ignored (treated as absent)');
+
+  delete st.decomposition.planIntentFile;
+  fs.writeFileSync(statePath, JSON.stringify(st, null, 2));
+});
+
 // Cleanup
 fs.rmSync(tmpBase, { recursive: true, force: true });
 

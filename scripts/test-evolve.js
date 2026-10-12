@@ -229,7 +229,7 @@ try {
  project('state');
  const stateCli = path.join(__dirname, 'state.js');
  const initR = spawnSync(process.execPath,
- [stateCli, 'init', '--name', 'business task', '--type', 'implementation', '--path', 'fast'],
+ [stateCli, 'init', '--name', 'business task', '--type', 'implementation'],
  { cwd, encoding: 'utf8' });
  assert.equal(initR.status, 0, `create state.json failed: ${(initR.stdout || initR.stderr).slice(0, 200)}`);
  checks++;

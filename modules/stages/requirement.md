@@ -50,18 +50,7 @@ The Implementation gate reads `decomposition` only — never `coarseDecompositio
 
 ### When Decomposition Is Mandatory (fine level)
 
-Judge by the scope-survey output (affected-file list + number of logical change units), **counted by logical change unit, not by touched-file count**:
-
-| Condition | Action |
-|------|------|
-| >= 2 logical change units | **Must decompose** |
-| Clear sequential dependencies | **Must decompose** |
-| De-duplicated estimated > 50 logical change lines | **Must decompose** |
-| Scope survey reports a single logical change unit (one file, de-duplicated <50 lines, no dependencies, not spanning business modules, no undecided design point) | May skip (must record reason) |
-
-The same logical change unit synchronized across N locations (documentation consistency / copy sync) counts as **one** change unit and does not accumulate lines, but all N locations must be listed in the boundary contract. Touched-file count only serves as the scope survey's lower-bound evidence, not as an independent escalation threshold.
-
-**This table is the decomposition criterion, not the escalation criterion.** "Must decompose" and "escalate to the standard path" are two different questions with two different thresholds; both consume the same scope-survey output but yield independent conclusions — **escalate != decompose**. The escalation criterion (number of logical change units >= 2, spanning business modules, an undecided design point, de-duplicated estimated logical change lines > 50) is defined once in [escalation.md](../core/task/escalation.md), section "Change-complexity checkpoint" ([SKILL.md](../../SKILL.md) only cites that section), together with the module-root definition of "spans business modules". A request can escalate with only one change unit (so decomposition may be skipped) and can require decomposition without escalating (2 change units, same module, no undecided design point, de-duplicated <50 lines).
+The decomposition criterion (when decomposition is mandatory, and when it may be skipped) is defined **once** in [decomposition.md](../core/task/decomposition.md), section "When Decomposition Is Mandatory". This document **does not restate that table or its thresholds** — when a decomposition decision is needed, read that file. The criterion is distinct from the escalation criterion (defined once in [escalation.md](../core/task/escalation.md)): escalate != decompose.
 
 ### Decomposition Plan Record
 

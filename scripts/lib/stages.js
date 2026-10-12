@@ -36,18 +36,37 @@ const STAGES = [
 ];
 
 /**
- * Stages reached only on `--type design --path full`.
- * `initialization` is deliberately NOT here: it is the session's first step on
- * every path (scope survey + coarse decomposition), so it must survive the filter.
- * `prototype` replaces the former sequential `ux-design` + `ui-design` pair
- * with a single interleaved iteration loop that produces a runnable prototype.
+ * Design-only stages. These are also the **only** stages a stage-skip may remove
+ * (see `state.js skip`): authorization gates (bootstrap, initialization,
+ * requirement), evidence gates (testing, review), delivery (ship) and the four
+ * post-delivery retrospectives (learn/evolution/reflection/archive) are never
+ * skippable.
  */
 const DESIGN_ONLY_STAGES = ['tool-research', 'feature-design', 'architecture', 'prototype'];
 
-/** Stages active for a given state's task type + path. */
+/**
+ * Stages active for a state.
+ *
+ * Two readings, split by whether the state carries the `skipped` field (every
+ * state created by the current `init` writes `skipped: []`):
+ *
+ * - **Current states** (`skipped` present): the route is ALWAYS the full 15-stage
+ *   chain minus the stages the user has explicitly approved to skip (written by
+ *   `state.js skip` with a mandatory reason quoting the user's approval). Task
+ *   type and path no longer filter: any reduction is a recorded, user-approved
+ *   skip — not a silent routing decision.
+ * - **Legacy states** (`skipped` absent): created under the old contract where
+ *   only `type=design && path=full` received design stages; the others never
+ *   scheduled them. Reading such a state as the full chain would demand design
+ *   work the task never scheduled, so the old filter is preserved verbatim.
+ */
 function route(s) {
-  if (s.task.type === 'design' && s.task.path === 'full') return STAGES;
-  return STAGES.filter(x => !DESIGN_ONLY_STAGES.includes(x));
+  if (!Array.isArray(s.skipped)) {
+    if (s.task.type === 'design' && s.task.path === 'full') return STAGES;
+    return STAGES.filter(stage => !DESIGN_ONLY_STAGES.includes(stage));
+  }
+  const skipped = new Set(s.skipped.map(x => x && x.stage));
+  return STAGES.filter(stage => !skipped.has(stage));
 }
 
 module.exports = { STAGES, DESIGN_ONLY_STAGES, route };

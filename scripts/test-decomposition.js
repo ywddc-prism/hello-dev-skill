@@ -64,7 +64,7 @@ function runCodex(args, cwd) {
 function project() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'decomp-test-'));
   fs.mkdirSync(path.join(dir, '.git'), { recursive: true });
-  const r = run(['init', '--name', 'Decomp test', '--type', 'implementation', '--path', 'full'], dir);
+  const r = run(['init', '--name', 'Decomp test', '--type', 'implementation'], dir);
   assert.strictEqual(r.code, 0, 'fixture init failed: ' + r.out);
   return dir;
 }
@@ -85,6 +85,11 @@ function driveToImplementation(dir, ids) {
   run(['checkpoint', 'Requirement confirmed', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['checkpoint', 'Decomposition plan', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['stage', 'requirement', 'completed'], dir);
+  // Full-chain default: record user-approved skips of the four design stages before
+  // entering implementation (replaces the retired --path auto-filter).
+  for (const st of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+    run(['skip', st, '--reason', 'User approved: skip design stage, fixture has no undecided design point to settle'], dir);
+  }
   run(['stage', 'implementation', 'in_progress'], dir);
   for (const t of ids) {
     run(['subtask', t, 'in_progress'], dir);
@@ -323,14 +328,14 @@ test('order keeps its existing lines and appends the analysis', () => {
   assert.strictEqual(o.code, 0, 'order failed: ' + o.out);
   assert.match(o.out, /Wave 1/, 'legacy order line must remain');
   assert.match(o.out, /Progress: 0\/3/i, 'legacy progress line must remain');
-  assert.match(o.out, /Dispatch: parallel/i,
-    'legacy dispatch line must remain (its value is now the parallel default)');
+  assert.match(o.out, /Dispatch: serial/i,
+    'legacy dispatch line must remain (its value is the serial default; parallel is opt-in)');
   assert.match(o.out, /Parallel groups/, 'analysis sections must be appended');
 });
 
 /* ---------- Mandatory sub-agent dispatch ---------- */
 
-test('default dispatch mode is parallel after decompose', () => {
+test('default dispatch mode is serial after decompose', () => {
   const dir = project();
   const d = run(['decompose', '--tasks', tasksJson([
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
@@ -338,10 +343,24 @@ test('default dispatch mode is parallel after decompose', () => {
   ])], dir);
   assert.strictEqual(d.code, 0, 'decompose failed: ' + d.out);
   const s = JSON.parse(fs.readFileSync(path.join(dir, '.hello-dev/state.json'), 'utf8'));
-  assert.strictEqual(s.decomposition.dispatchMode, 'parallel',
-    'parallel must be the default so parallel groups are dispatched, not merely labeled');
+  assert.strictEqual(s.decomposition.dispatchMode, 'serial',
+    'serial must be the default: the main agent executes every subtask; parallel is an explicit opt-in');
   assert.ok(Array.isArray(s.decomposition.dispatches),
     'decompose must initialise the dispatches array (it marks the state as governed by this policy)');
+});
+
+test('dispatch-mode parallel is an explicit opt-in that arms the dispatch gate', () => {
+  const dir = project();
+  assert.strictEqual(run(['decompose', '--tasks', tasksJson([
+    { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
+    { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
+  ])], dir).code, 0, 'decompose must succeed first');
+  // Opting in flips the write default off and arms the gate: after this, every parallel
+  // wave must carry a dispatch or waiver before `stage implementation completed`.
+  assert.strictEqual(run(['dispatch-mode', 'parallel'], dir).code, 0, 'opt-in must succeed');
+  const s = JSON.parse(fs.readFileSync(path.join(dir, '.hello-dev/state.json'), 'utf8'));
+  assert.strictEqual(s.decomposition.dispatchMode, 'parallel',
+    'explicit opt-in must persist dispatchMode=parallel');
 });
 
 test('decompose prints the mandatory dispatch plan', () => {
@@ -397,6 +416,9 @@ test('Implementation is blocked until every parallel wave is dispatched', () => 
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
   ])], dir).code, 0);
+  // A1: parallel is an explicit opt-in; the mandatory-dispatch gate only arms under
+  // dispatchMode=parallel (serial default owes no dispatch records).
+  run(['dispatch-mode', 'parallel'], dir);
   // Drive the flow to implementation-in-progress with every subtask completed.
   run(['stage', 'bootstrap', 'completed'], dir);
   run(['stage', 'initialization', 'in_progress'], dir);
@@ -407,6 +429,9 @@ test('Implementation is blocked until every parallel wave is dispatched', () => 
   run(['checkpoint', 'Requirement confirmed', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['checkpoint', 'Decomposition plan', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['stage', 'requirement', 'completed'], dir);
+  for (const st of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+    run(['skip', st, '--reason', 'User approved: skip design stage, fixture has no undecided design point to settle'], dir);
+  }
   run(['stage', 'implementation', 'in_progress'], dir);
   for (const t of ['t1', 't2']) {
     run(['subtask', t, 'in_progress'], dir);
@@ -435,6 +460,8 @@ test('dispatch-waive opens the gate with a recorded reason', () => {
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
   ])], dir).code, 0);
+  // A1: arm the gate by opting into parallel dispatch.
+  run(['dispatch-mode', 'parallel'], dir);
   run(['stage', 'bootstrap', 'completed'], dir);
   run(['stage', 'initialization', 'in_progress'], dir);
   run(['checkpoint', 'Scope survey', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
@@ -444,6 +471,9 @@ test('dispatch-waive opens the gate with a recorded reason', () => {
   run(['checkpoint', 'Requirement confirmed', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['checkpoint', 'Decomposition plan', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['stage', 'requirement', 'completed'], dir);
+  for (const st of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+    run(['skip', st, '--reason', 'User approved: skip design stage, fixture has no undecided design point to settle'], dir);
+  }
   run(['stage', 'implementation', 'in_progress'], dir);
   for (const t of ['t1', 't2']) {
     run(['subtask', t, 'in_progress'], dir);
@@ -474,6 +504,9 @@ test('serial mode bypasses the dispatch gate (explicit opt-out)', () => {
   run(['checkpoint', 'Requirement confirmed', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['checkpoint', 'Decomposition plan', 'pass', '--reason', 'fixture scope survey reasoning: required checkpoints need substantive evidence'], dir);
   run(['stage', 'requirement', 'completed'], dir);
+  for (const st of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+    run(['skip', st, '--reason', 'User approved: skip design stage, fixture has no undecided design point to settle'], dir);
+  }
   run(['stage', 'implementation', 'in_progress'], dir);
   for (const t of ['t1', 't2']) {
     run(['subtask', t, 'in_progress'], dir);
@@ -519,6 +552,8 @@ test('a PARTIAL dispatch does not satisfy the gate (every parallel subtask requi
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
     { id: 't3', name: 'C', depends: [], affectedFiles: ['c.js'] },
   ])], dir).code, 0);
+  // A1: arm the gate by opting into parallel dispatch.
+  run(['dispatch-mode', 'parallel'], dir);
   // Drive to implementation with all subtasks completed, then dispatch only ONE of three.
   driveToImplementation(dir, ['t1', 't2', 't3']);
   const partial = run(['dispatch', '--wave', '1', '--subtasks', 't1', '--agent', 'sa-part'], dir);
@@ -541,6 +576,8 @@ test('a waiver satisfies the wave entirely; duplicate dispatches do not confuse 
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
   ])], dir).code, 0);
+  // A1: arm the gate by opting into parallel dispatch.
+  run(['dispatch-mode', 'parallel'], dir);
   driveToImplementation(dir, ['t1', 't2']);
   run(['dispatch', '--wave', '1', '--subtasks', 't1', '--agent', 'sa-1'], dir);
   run(['dispatch', '--wave', '1', '--subtasks', 't1', '--agent', 'sa-2'], dir);
@@ -704,9 +741,12 @@ test('a rejected self-dispatch leaves the gate closed; a real one opens it', () 
   ])], dir).code, 0, 'decompose must succeed first');
   driveToImplementation(dir, ['t1', 't2']);
 
-  // The gate needs dispatchMode != serial and a dispatches field to exist (decompose sets both).
+  // The gate needs dispatchMode != serial and a dispatches field to exist. The default is
+  // now serial, so this fixture explicitly opts into parallel to arm the gate -- that
+  // opt-in is exactly what makes dispatch records mandatory.
+  assert.strictEqual(run(['dispatch-mode', 'parallel'], dir).code, 0, 'opt-in must succeed');
   const stored = JSON.parse(fs.readFileSync(path.join(dir, '.hello-dev/state.json'), 'utf8'));
-  assert.strictEqual(stored.decomposition.dispatchMode, 'parallel', 'fixture must use the default parallel mode');
+  assert.strictEqual(stored.decomposition.dispatchMode, 'parallel', 'fixture must opt into parallel mode');
   assert.ok(Array.isArray(stored.decomposition.dispatches), 'fixture must carry the dispatches field');
 
   assert.notStrictEqual(run(['dispatch', '--wave', '1', '--agent', 'main-agent'], dir).code, 0,
@@ -729,6 +769,8 @@ test('dispatch-waive still satisfies the gate (a waiver is exempt from the agent
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
   ])], dir).code, 0, 'decompose must succeed first');
+  // A1: arm the gate by opting into parallel dispatch.
+  run(['dispatch-mode', 'parallel'], dir);
   driveToImplementation(dir, ['t1', 't2']);
   assert.notStrictEqual(run(['stage', 'implementation', 'completed'], dir).code, 0, 'gate should block first');
 
@@ -781,6 +823,8 @@ test('separator bypasses cannot open the gate through the CLI', () => {
     { id: 't1', name: 'A', depends: [], affectedFiles: ['a.js'] },
     { id: 't2', name: 'B', depends: [], affectedFiles: ['b.js'] },
   ])], dir).code, 0, 'decompose must succeed first');
+  // A1: arm the gate by opting into parallel dispatch.
+  run(['dispatch-mode', 'parallel'], dir);
 
   for (const agent of ['main.agent', 'main/agent', 'the main agent', 'agent']) {
     const r = run(['dispatch', '--wave', '1', '--agent', agent], dir);

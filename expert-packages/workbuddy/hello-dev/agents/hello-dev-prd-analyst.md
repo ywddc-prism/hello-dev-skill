@@ -129,7 +129,7 @@ node scripts/state.js checkpoint "Requirement confirmed" pass --reason "PRD v1.0
 | 范围守门员（严守边） | 你（许析需） |
 |---|---|
 | 判断"需不需要 PRD" | 负责**写** PRD |
-| 定义执行路径（full / implementation / fast） | 不判路径 |
+| 给出范围探查四要素与设计阶段跳过提议（不判路径——只有全链一条） | 不判范围 |
 | 确认边界四要素 | 展开四要素为完整文档 |
 | 小改动自己处理需求 | 中大型需求交给你 |
 

@@ -1,10 +1,10 @@
 # Implementation Agent - Implementation Responsibilities
 
-> "Implementation Agent" is an execution responsibility. It launches sub-agents when a parallel group exists, because `dispatchMode` now defaults to `parallel`.
+> "Implementation Agent" is an execution responsibility. It launches sub-agents when a parallel group exists AND `dispatchMode` has been explicitly set to `parallel` (the default is `serial`: the main agent executes every subtask unless parallel dispatch is opted into).
 
 Break confirmed approach into verifiable small batches: check related code -> reproduce problem first / write regression -> minimal implementation -> immediate log -> build -> related verification -> review.
 
-**Dispatch mode determines delegation**: `dispatchMode` defaults to `parallel`, so every wave the analysis marks `parallel` **must** be dispatched to sub-agents and the dispatch recorded with `state.js dispatch`. Set `dispatchMode` to `serial` only as an explicit opt-out with a recorded reason (or use `dispatch-waive` for one wave). Sub-agents are execution tools, not decision makers -- they receive scope, execute, and return results for the main agent to verify.
+**Dispatch mode determines delegation**: `dispatchMode` defaults to `serial` -- the main agent executes every subtask unless parallel dispatch is explicitly opted into with `dispatch-mode parallel`. Under `parallel`, every wave the analysis marks `parallel` **must** be dispatched to sub-agents and the dispatch recorded with `state.js dispatch` (or `dispatch-waive` with a recorded reason for one wave). Sub-agents are execution tools, not decision makers -- they receive scope, execute, and return results for the main agent to verify.
 
 ## Per-Batch Boundaries
 

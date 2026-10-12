@@ -5,9 +5,9 @@
 
 ## Position
 
-Mandatory on **every** execution path (`design/full`, `implementation`, `fast`, `other`). It sits
+Mandatory on **every** state-bearing task (the full chain is the only route; `other` tasks included). It sits
 between [bootstrap](bootstrap.md) and [requirement](requirement.md) and is deliberately **not** a
-design-only stage: knowing the shape of the work is a precondition of routing, not a consequence
+design-only stage: knowing the shape of the work is a precondition of planning, not a consequence
 of it.
 
 ```
@@ -99,8 +99,9 @@ as user approval. The overall goal and scope are confirmed in
   request's wording. If the survey cannot be completed, record `warn` and say what is missing.
 - **Do not treat the coarse plan as approved scope.** It is a hypothesis about structure that
   requirement may overturn; re-decomposing after requirement is expected, not a failure.
-- **Do not skip it on short paths.** `fast` and `tiny` run it in condensed form; the stage is
-  mandatory everywhere. What shrinks is the ceremony, not the stage.
+- **Do not skip it.** The stage runs in condensed form for small changes, but it is mandatory
+  on every state-bearing task; there is no short path around it. What shrinks is the ceremony,
+  not the stage.
 - **Do not write the fine plan here.** If a unit already has a file list and a wave number, it
   belongs in requirement, not initialization.
 

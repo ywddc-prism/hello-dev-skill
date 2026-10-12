@@ -39,7 +39,7 @@ Hello Dev is a development enhancement system built around six problems that AI-
 5. **State is lost on session restart**: conversation history is the only record, and it is unreliable. Hello Dev persists all approvals, retries, checkpoints, and decomposition state in `.hello-dev/state.json`, recoverable via `resume`.
 6. **Platform lock-in**: the same workflow must run on different AI hosts. Hello Dev decouples scheduling from dispatch through a Host Adapter layer, so the core state machine is host-agnostic while each platform provides its own sub-agent invocation mechanism.
 
-It provides structured execution paths (design/full, implementation, fast) with mandatory Testing and Review stages, interactive architecture decision guidance, and an evolution system that evaluates experience candidates without auto-activating them.
+It provides a single structured execution path (the full 15-stage chain) with mandatory Testing and Review stages, interactive architecture decision guidance, and an evolution system that evaluates experience candidates without auto-activating them. Design stages are removed only via recorded, user-approved skips (`state.js skip`), never by silent routing.
 
 ## When to Use
 
@@ -54,9 +54,9 @@ It provides structured execution paths (design/full, implementation, fast) with 
 ## Quick Start
 
 1. **Describe the task** in natural language (e.g. "fix a bug", "give me a plan", "refactor auth module").
-2. **Confirm scope**: the agent identifies the execution path (design/full, implementation, or fast) and confirms boundaries with you.
+2. **Confirm scope**: the agent confirms the problem, boundaries, and success criteria with you. Every task starts on the full chain.
 3. **Decompose subtasks** (unless the scope survey reports a single logical change unit): each subtask declares affected files for conflict detection.
-4. **Execute stages**: Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive. Design paths insert Tool Research, Feature Design, Architecture, and Prototype before Implementation.
+4. **Execute stages**: Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive. When a design stage is unnecessary, the agent proposes the skip at the stage boundary; record it only after user approval (`state.js skip`).
 5. **Verify and deliver**: each stage produces required output; Testing and Review gates cannot be skipped.
 
 ## Execution Contract
@@ -88,34 +88,38 @@ First read the target project's AGENTS.md and existing related documents. Use sk
 | Needs design module approval                                  | [design-flow.md](modules/core/approval/design-flow.md)                                                      |
 | Need to find other materials                                  | [modules/index.md](modules/index.md), load only relevant entries                                            |
 | Decompose subtasks after requirement confirmation (mandatory) | [decomposition.md](modules/core/task/decomposition.md) decomposition, order table, and dispatch mode        |
+| Frontend / UI design decisions (prototype stage)             | `ui-ux-pro-max` bundled skill (structured UI specs) + `grill-me` discipline (one question at a time)       |
+| Skip a design stage (consent-based)                          | Propose at stage boundary; record with `state.js skip <stage> --reason "<user approval, verbatim>"`        |
 
 Do not pre-read all stages, historical designs, or templates. Answer read-only consultations directly; do not write state "for using the process".
 
 ## Start with Natural Language
 
-No need to learn framework terminology first. Just describe the task in your language; [intent mapping](modules/core/task/intent-resolver.md) converts it to a path:
+No need to learn framework terminology first. Just describe the task in your language; [intent mapping](modules/core/task/intent-resolver.md) converts it to a plan:
 
-| You Say                                 | Internal Path                           |
-| --------------------------------------- | --------------------------------------- |
-| Give me a plan first, don't change code | design/full, stop before implementation |
-| Plan is confirmed, implement directly   | implementation                          |
-| Fix a small bug                         | fast, skip design approval              |
-| Trivial one-line change                 | tiny, single-file minimal change        |
-| Help me research / what's the principle | Read-only, no state initialization      |
-| Continue last task                      | resume                                  |
-| Stop this task                          | Stop immediately                        |
+| You Say                                 | What Actually Happens                                     |
+| --------------------------------------- | --------------------------------------------------------- |
+| Give me a plan first, don't change code | Full chain through design stages, stop before implementation |
+| Plan is confirmed, implement directly   | Full chain; design stages skipped only via approved `state.js skip` |
+| Fix a small bug                         | Full chain; agent proposes skipping design stages if unnecessary |
+| Trivial one-line change                 | Full chain; same consent-based skips                       |
+| Help me research / what's the principle | Read-only, no state initialization                         |
+| Continue last task                      | resume                                                     |
+| Stop this task                          | Stop immediately                                           |
 
-Classification only determines the path, not authorization: deployment, Git write operations, installation sync, and deletion still require separate confirmation.  
+Classification only determines the plan, not authorization: deployment, Git write operations, installation sync, and deletion still require separate confirmation.  
 The underlying `scripts/state.js` is retained as a recovery and audit interface and can be used directly when state is abnormal.
 
-## Execution Paths
+## Execution Path
 
-- **Design full**: Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive.
-- **Clear plan implementation/fast/other with writes**: Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive.
-- Small changes can use fast, but the decision must follow the scope-survey output rather than a bare line count: the affected-file list, the number of logical change units, and whether the change spans business modules. A de-duplicated estimate of <50 lines with no new dependencies and no architecture changes is only the **lower-bound evidence** produced by the scope survey, not a standalone threshold that overrides risk judgment.
+There is exactly one execution path — the full chain. Design-stage reduction happens only through recorded, user-approved skips.
+
+- **Full chain**: Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive.
+- **Consent-based skip**: at each design-stage boundary the agent proposes skipping it if unnecessary (with a recommendation); if the user approves, record `node scripts/state.js skip <stage> --reason "<user approval, verbatim>"`. Authorization gates (bootstrap/initialization/requirement), evidence gates (testing/review), ship, and the four post-delivery stages are never skippable.
+- Small changes still run the full chain: the decision to propose a skip must follow the scope-survey output rather than a bare line count — the affected-file list, the number of logical change units, and whether the change spans business modules. A de-duplicated estimate of <50 lines with no new dependencies and no architecture changes is only the **lower-bound evidence** produced by the scope survey, not a standalone threshold that overrides risk judgment.
 - Design or documentation tasks only: Implementation is organizing approved documents; Testing verifies consistency and examples, does not generate code the user did not request.
 
-**Scope survey (a precondition of routing)**: before giving a WF-Fast / WF-Standard decision, first produce four items — the affected-file list, the number of logical change units, whether the change spans business modules, and whether any undecided design point exists. Without a completed scope survey, no fast/standard path decision may be given.
+**Scope survey (a precondition of any skip proposal)**: before proposing a skip, produce four items — the affected-file list, the number of logical change units, whether the change spans business modules, and whether any undecided design point exists. Without a completed scope survey, no skip may be proposed.
 
 **"Spans business modules" -- a decidable definition**: judged mechanically by **module root**, not by impression. Full definition in [escalation](modules/core/task/escalation.md). Map each landing path to its module root: `modules/<subtree>/...` -> `modules/<subtree>` (current subtrees: core, stages, paths, hosts); `expert-packages/<host>/<package>/...` -> `expert-packages/<host>/<package>` (an expert package is its own release unit, with its own `plugin.json` and version); any other in-repo top-level directory (`scripts/`, `hooks/`, `templates/`, `references/`, `docs/`, `archive/`, ...) -> that top-level directory; loose files directly under `modules/` (e.g. `modules/index.md`) -> `modules`; loose files at the repo root (`SKILL.md`, `README.md`, `README.zh-CN.md`, `_quick-reference.md`, `AGENTS.md`, `CONTRIBUTING.md`, `self-check.yml`) -> the repo root; install copies / generated copies outside the repo are attributed by their **source path**; generated artifacts (whose only legitimate source is a generator, e.g. `modules/index.md`) **do not participate**. Landing in >= 2 distinct module roots => spans business modules. Rationale: this repository has no independently runnable backend/frontend subsystems; the units that do carry an independent release boundary and lifecycle are `expert-packages/<host>/<package>`, and cutting the rest at top-level directories matches the authoritativeness grouping in `modules/index.md`; the rule is pure path-prefix matching, so it can be mechanically re-checked.
 
@@ -126,7 +130,7 @@ The underlying `scripts/state.js` is retained as a recovery and audit interface 
 
 Supplementary notes (these do not add thresholds): "spans business modules" is judged by the decidable definition above (module root); that definition attributes install copies / generated copies outside the repo to the module root of their **source path**, so copy sync never produces a module root of its own — consistent with the cross-module carve-out above (where all N locations must share one module root), the two do not conflict; touched-file count only serves as the scope survey's lower-bound evidence, not as an independent escalation threshold.
 
-**Escalation criterion vs decomposition criterion**: these are **two different questions with two different thresholds**, both consuming **the same** scope-survey output, and their conclusions are **independent** — **escalate != decompose**. The escalation criterion answers "should this request take the standard loop" (team-lead SOP section cited above); the decomposition criterion answers "should this request be split into subtasks" (the "When Decomposition Is Mandatory" tables in [requirement](modules/stages/requirement.md) and [decomposition](modules/core/task/decomposition.md): >= 2 logical change units, clear sequential dependencies, de-duplicated estimated > 50 lines). Both can hold differently: "escalate yet have only 1 change unit so decomposition may be skipped" (a single change unit with an undecided design point, or landing in 2 module roots) is valid, and so is "decompose without escalating" (2 change units, same module, no undecided design point, de-duplicated <50 lines).
+**Escalation criterion vs decomposition criterion**: these are **two different questions with two different thresholds**, both consuming **the same** scope-survey output, and their conclusions are **independent** — **escalate != decompose**. The escalation criterion answers "should this request take the standard loop" (team-lead SOP section cited above); the decomposition criterion answers "should this request be split into subtasks" and is defined **once** in [decomposition](modules/core/task/decomposition.md), section "When Decomposition Is Mandatory" — [requirement](modules/stages/requirement.md) cites it, and neither this document nor requirement restates its thresholds. Both can hold differently: "escalate yet have only 1 change unit so decomposition may be skipped" (a single change unit with an undecided design point, or landing in 2 module roots) is valid, and so is "decompose without escalating" (2 change units, same module, no undecided design point, de-duplicated <50 lines).
 
 | Stage                         | Required Output                                                               | On-demand Details                                  |
 | ----------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------- |
@@ -153,8 +157,9 @@ node scripts/state.js decompose --tasks '[
   {"id":"t2","name":"API","depends":["t1"],"affectedFiles":["src/api/user.js"]}
 ]'
 
-# Dispatch mode (parallel is the default)
-node scripts/state.js dispatch-mode serial     # explicit opt-out: main agent executes all
+# Dispatch mode (serial is the default; parallel is explicit opt-in)
+node scripts/state.js dispatch-mode parallel   # opt-in: dispatch parallel waves to sub-agents
+node scripts/state.js dispatch-mode serial     # default: main agent executes all
 
 # Mandatory dispatch: show the plan, then record each parallel wave you dispatch
 node scripts/state.js dispatch-plan
@@ -162,7 +167,7 @@ node scripts/state.js dispatch --wave 2 --subtasks t2,t3 --agent <name>
 node scripts/state.js dispatch-waive --wave 2 --reason "..."   # authorized serial instead
 ```
 
-**Dispatch modes**: `parallel` (default) or `serial` (explicit opt-out). Every wave the analysis marks `parallel` **must** be dispatched to sub-agents and the dispatch recorded with `dispatch`; `stage implementation completed` is rejected until each such wave has a `dispatch` or `dispatch-waive` record. States written before this policy have no `dispatches` field and are not retroactively blocked. Sub-agents are constrained: no state writes, no Git operations, no user interaction. Main agent verifies all sub-agent output. File conflicts within a wave force sequential execution, so such a wave never enters the dispatch plan. See [decomposition.md](modules/core/task/decomposition.md) for full constraints.
+**Dispatch modes**: `serial` (default; the main agent executes every subtask, no dispatch records owed) or `parallel` (explicit opt-in). When `parallel` is set, every wave the analysis marks `parallel` **must** be dispatched to sub-agents and the dispatch recorded with `dispatch`; `stage implementation completed` is rejected until each such wave has a `dispatch` or `dispatch-waive` record. States written before this policy have no `dispatches` field and are not retroactively blocked. Sub-agents are constrained: no state writes, no Git operations, no user interaction. Main agent verifies all sub-agent output. File conflicts within a wave force sequential execution, so such a wave never enters the dispatch plan. See [decomposition.md](modules/core/task/decomposition.md) for full constraints.
 
 ### Codex Sub-Agent Dispatch
 
@@ -209,7 +214,7 @@ node scripts/memory.js add --layer L2 --content "..." --source <real evidence>  
 | Ops command risk and execution approval | [ops-execution.md](modules/core/approval/ops-execution.md); risk table must match hooks/opsgate.js                                                         |
 | Change log                              | [Log Rules](docs/progress_coding/_RULES.md)                                                                                                                |
 
-`agents/`, archived `automation/`, and `core/memory/` historical designs are not current execution bases. Learn, Evolution, Reflection, and Archive are **mandatory on every execution path** -- including `fast`, `tiny`, and `other` -- and are not optional; their completion checkpoints cannot be skipped and are not waived by delivery. See [modules/index.md](modules/index.md) for details.
+`agents/`, archived `automation/`, and `core/memory/` historical designs are not current execution bases. Learn, Evolution, Reflection, and Archive are **mandatory on every execution path** -- including `other` and any path with design-stage skips -- and are not optional; their completion checkpoints cannot be skipped and are not waived by delivery. See [modules/index.md](modules/index.md) for details.
 
 ## Verify This Skill
 

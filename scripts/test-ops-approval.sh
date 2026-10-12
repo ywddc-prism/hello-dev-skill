@@ -11,7 +11,7 @@ ck() { # ck <expected exit code> <description> <command...>
  if [ "$got" = "$want" ]; then printf ' %s\n' "$desc"; pass=$((pass+1));
  else printf ' %s (expected exit=%s got %s)\n' "$desc" "$want" "$got"; printf '%s\n' "$out" | sed 's/^/ /'; fail=$((fail+1)); fi
 }
-ck 0 "init" $CLI init --name "e2e" --type other --path fast
+ck 0 "init" $CLI init --name "e2e" --type other
 
 echo "== Environment declaration is required and enum-validated =="
 # The environment is a declared enum, not inferred from --target. Inference was measured

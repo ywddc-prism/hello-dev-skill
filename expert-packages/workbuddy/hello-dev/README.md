@@ -71,12 +71,12 @@ Team 型（多角色协作团队）· `categoryId: 10-ProjectQuality`
 | `hello-dev-memory-curator` | 沉积验 | 经验与证据链管家 | 五层记忆写入门禁、adopt/outcome 记账、Bootstrap 召回、评估指标汇总、复盘建议 | 不自动激活经验、不把日志当记忆、如实陈述门禁的语言局限 |
 | `hello-dev-learning-mentor` | 吴学思 | 即时学习导师 | Stage 9 即时学习：知识卡片、经验总结、决策回顾、错误学习、技能进度追踪 | 不写 memory.json、不虚构学习成果、不替代记忆管家做写入门禁 |
 
-**为什么是这 15 个**：裁剪标准有两条，缺一不可——第一条是"有没有用户会直接问它的问题"（可点名性），第二条是"**机制面必须有承接者**"（机制面驱动）。按第一条，原有 7 个覆盖了交付闭环（边界 -> 分解 -> 验证 -> 复核 -> 闸门 -> 记忆），但 Hello Dev 不只是治理框架——它的 `design/full` 路径有 Feature Design 和 Architecture 两个必经设计阶段，它的 Requirement 阶段有完整的 PRD 模板，它的 Stage 9 有即时学习系统。这 3 个角色（PRD 分析师、架构师、学习导师）让设计阶段和学习阶段有了专门的承载者，每个都能独立被用户点到（"帮我写 PRD"、"帮我做架构设计"、"这次学到了什么"）。随后 **UX 设计师与 UI 设计师**也被纳入：`design/full` 路径在架构之后还有交互设计与视觉设计，二者之间存在"UX/UI 迭代交织协议"（见下节），若无对应角色，该协议要么由主理人临时兼任（违反"不代写"原则），要么被整段跳过（违反"不跳阶段"原则）。
+**为什么是这 15 个**：裁剪标准有两条，缺一不可——第一条是"有没有用户会直接问它的问题"（可点名性），第二条是"**机制面必须有承接者**"（机制面驱动）。按第一条，原有 7 个覆盖了交付闭环（边界 -> 分解 -> 验证 -> 复核 -> 闸门 -> 记忆），但 Hello Dev 不只是治理框架——它的全链有 Feature Design 和 Architecture 两个设计阶段（仅在未被用户批准跳过时执行），它的 Requirement 阶段有完整的 PRD 模板，它的 Stage 9 有即时学习系统。这 3 个角色（PRD 分析师、架构师、学习导师）让设计阶段和学习阶段有了专门的承载者，每个都能独立被用户点到（"帮我写 PRD"、"帮我做架构设计"、"这次学到了什么"）。随后 **UX 设计师与 UI 设计师**也被纳入：全链在架构之后还有交互设计与视觉设计，二者之间存在"UX/UI 迭代交织协议"（见下节），若无对应角色，该协议要么由主理人临时兼任（违反"不代写"原则），要么被整段跳过（违反"不跳阶段"原则）。
 
 按第二条，再纳入 3 个新成员——它们对应的是**此前无人承接的机制面**，而不是新增的机制：
 
 - **实施工程师（`hello-dev-implementer`）—— 实施/验证职责分离**。此前验证官既动手实施、又自己举证，"自己验证自己"，直接架空了复核官所声明的制度性独立（复核的前提是实施与验证不是同一个人）。剥离后形成"实施工程师动手 -> 验证官举证 -> 复核官复核"的三方制衡，复核官的独立性才有了结构上的保证。
-- **工具调研员（`hello-dev-tool-researcher`）—— 补上 `tool-research` 阶段的承接者**。`tool-research` 是 `design/full` 路径的必经阶段（在 `feature-design` 与 `architecture` 之间），此前包内**没有任何成员承接它**，`ux-designer.md` 与 `ui-designer.md` 里还留着 3 处指向"工具调研员"的悬空引用。这是典型的"机制面无承接者"，不是可选优化。
+- **工具调研员（`hello-dev-tool-researcher`）—— 补上 `tool-research` 阶段的承接者**。`tool-research` 是全链的设计阶段之一（在 `feature-design` 与 `architecture` 之间，未被用户批准跳过时执行），此前包内**没有任何成员承接它**，`ux-designer.md` 与 `ui-designer.md` 里还留着 3 处指向"工具调研员"的悬空引用。这是典型的"机制面无承接者"，不是可选优化。
 - **恢复与返工台账官（`hello-dev-recovery-registrar`）—— 补上返工台账**。实测 12 个 state 文件的 `retry.total` **全部为 0**、`perModule` 全空，而 `rolled_back` 事件实测发生 **52 次**：回滚与返工反复发生却无人记账，下游失效证据只能靠事后偶然发现。台账结构性缺位，与"有没有用户点名"无关。
 
 其中**实施工程师是机制面驱动的例外**：用户不会点名"帮我做实施职责分离"（没有用户会这样提问），是机制需要它——不分离，复核官的独立性就是名义上的。这正是第二条裁剪标准存在的意义：只按可点名性裁剪，会漏掉那些"无人提问却支撑着其他角色合法性"的成员。
@@ -114,7 +114,7 @@ Team 型（多角色协作团队）· `categoryId: 10-ProjectQuality`
 
 **以上是权威表述（与 `agents/hello-dev-team-lead.md` 的 [改动复杂度检查点] 逐字一致，由 `cmp` 验证）；其他文档一律引用此句，不得另立表述。** 注意"唯一表述"指**语义唯一**，不指副本数量：`modules/core/task/escalation.md` 的同一个 carve-out 段落也以英文承载同一语义（两份方向一致，可交叉核对）。**不得出现方向相反的竞争表述**——尤其是把 carve-out 简写成"N 处同步一律不计为跨模块"，那会丢掉同根限定，使同一对落点在两处得到相反的升级判定。 补充说明（不构成新阈值）：跨业务模块按下方"可判定定义"（模块根）判定；该定义把仓库外的安装副本 / 生成副本按其**源路径**归属模块根，故副本同步不单独产生模块根——与上句 carve-out"不计为跨模块"一致，二者不冲突；落点文件数只作为范围探查的下界证据，不作为独立升级阈值。
 
-**升级判据 vs 分解判据**：二者是**两个不同的问题、两套不同阈值**，消费**同一份**范围探查产出，结论**互相独立**——**升级 ≠ 分解**。升级判据回答"要不要走标准闭环"（见上方引用的 `team-lead.md` 一节）；分解判据回答"要不要拆子任务"（`modules/stages/requirement.md`、`modules/core/task/decomposition.md` 的"When Decomposition Is Mandatory"表：逻辑改动单元数 ≥ 2、存在明确顺序依赖、去重后预估 > 50 行）。可以"升级但只有 1 个改动单元因而不必分解"（单个改动单元有未决设计点、或落点在 2 个模块根），也可以"要分解但不必升级"（2 个改动单元、同模块、无未决设计点、去重后 <50 行）。
+**升级判据 vs 分解判据**：二者是**两个不同的问题、两套不同阈值**，消费**同一份**范围探查产出，结论**互相独立**——**升级 ≠ 分解**。升级判据回答"要不要走标准闭环"（见上方引用的 `team-lead.md` 一节）；分解判据回答"要不要拆子任务"，**定义一次于** `modules/core/task/decomposition.md` 的"When Decomposition Is Mandatory"节——`modules/stages/requirement.md` 只引用它，本文档不复述其阈值。可以"升级但只有 1 个改动单元因而不必分解"（单个改动单元有未决设计点、或落点在 2 个模块根），也可以"要分解但不必升级"（2 个改动单元、同模块、无未决设计点、去重后 <50 行）。
 
 **"跨业务模块"的可判定定义**：按**模块根**（module root）机械判定，不靠主观印象。把每个落点路径映射到它的模块根：`modules/<子树>/...` → `modules/<子树>`（现有子树：core、stages、paths、hosts）；`expert-packages/<宿主>/<专家包>/...` → 该专家包（独立发布单元，有自己的 plugin.json 与版本号）；仓库内其余顶层目录（`scripts/`、`hooks/`、`templates/`、`references/`、`docs/` 等）→ 该顶层目录；`modules/` 下散装文件（如 `modules/index.md`）→ `modules`；仓库根下散装文件（`SKILL.md`、`README.md`、`README.zh-CN.md`、`_quick-reference.md`、`AGENTS.md`、`CONTRIBUTING.md`、`self-check.yml`）→ 仓库根；仓库外的安装副本 / 生成副本按其**源路径**归属；生成物（唯一合法来源是生成器，如 `modules/index.md`）**不参与模块根计数**。映射后落在 ≥ 2 个不同模块根 ⇒ 跨业务模块。选此定义的理由：本仓库没有 backend / frontend 那类可独立运行的子系统，真正有独立发布边界的是 `expert-packages/<宿主>/<专家包>`，其余按顶层目录切分即与 `modules/index.md` 的权威性分组一致；规则纯靠路径前缀判定，可机械复核。
 
@@ -127,12 +127,13 @@ Phase 0  主理人            建立团队（TeamCreate），Phase 1 之前不�
 Phase 1  范围守门员        边界确认 + 设计模块拆分建议
 Phase 1.5 需求分析师       PRD / 最小需求摘要（新功能/新产品时自动激活）
 Phase 2  主理人            设计决策逐项请示用户 → 批准后才写状态
-Phase 2a UX 设计师         用户研究、交互流程、信息架构、可用性标准（design/full 自动激活）
-Phase 2b 工具调研员        Tool Research 事实采集与对比（design/full 自动激活）
+Phase 2b 工具调研员        Tool Research 事实采集与对比（全链走到该阶段且未被跳过时激活）
 Phase 2c 架构师            Feature Design + Architecture 一问一答式决策引导
-Phase 2d prototype         可运行原型：UX/UI 迭代交织产可运行原型，验证设计决策落地可行性
-                           （design/full 必经，Architecture 之后、Implementation 之前）
-Phase 2e UI 设计师         视觉风格、配色、字体、间距、组件规范（design/full 自动激活）
+Phase 2d prototype（含 UX/UI 协同）可运行原型：UX 设计师 + UI 设计师
+                           同阶段协同，每轮分两段：
+                           段 A 先逐项批准 UX 与 UI 决策（一次一问、先推荐后问），
+                           段 A 全部批准后才进入段 B 构建本轮可运行原型，
+                           用户当轮体验（全链阶段，未被用户批准跳过时执行）
          （每个设计决策由主理人转达用户，批准后推进下一个）
 Phase 3  任务分解师        子任务 + 依赖 + affectedFiles + 波次表 + 调度模式
 Phase 4  实施工程师（按波次）
@@ -153,9 +154,9 @@ Phase 11 Archive（主理人） 工件整理 + 记忆索引更新 + 闭环记录
 | 条件 | 自动激活 | 产出 |
 |------|---------|------|
 | 新功能/新产品（非 bug fix、非小改动） | 需求分析师（Phase 1.5） | PRD 或最小需求摘要 |
-| 执行路径为 `design/full` | UX 设计师（Phase 2a）+ 架构师（Phase 2c）+ UI 设计师（Phase 2e） | 交互规范、功能设计 + 架构文档 + 决策记录、视觉设计 |
-| 执行路径为 `design/full` | 工具调研员（Phase 2b） | 候选工具事实对比表（带来源），交架构师做选型决策 |
-| 执行路径为 `design/full` | prototype（Phase 2d） | 可运行原型，验证设计决策落地可行性 |
+| 全链走到架构阶段且未被用户批准跳过 | 架构师（Phase 2c） | 功能设计 + 架构文档 + 决策记录 |
+| 全链走到 tool-research 且未被用户批准跳过 | 工具调研员（Phase 2b） | 候选工具事实对比表（带来源），交架构师做选型决策 |
+| 全链走到 prototype 且未被用户批准跳过 | prototype（Phase 2d）+ UX 设计师协同 + UI 设计师协同 | 每轮段 A 批准全部 UX/UI 决策后段 B 构建可运行原型；从原型中抽取 UX 规范、UI 规范、设计令牌 |
 | 涉及接口/数据模型决策 | 架构师（Phase 2c） | API 契约 + 架构决策记录 |
 | 子任务波次实施 | 实施工程师（Phase 4 波次内） | 最小可逆改动 + 开发日志 + 自测输出（不含验证结论） |
 | 出现 `rolled_back` / 重试 / 返工事件 | 恢复与返工台账官（按需） | 返工台账：触发原因、受影响阶段、失效的下游证据、恢复依据 |
@@ -183,9 +184,9 @@ Phase 11 Archive（主理人） 工件整理 + 记忆索引更新 + 闭环记录
 并行的依据是**依赖图**，不是"人多了就快"：
 
 - **波次推导**：子任务波次 = max(所有前驱波次) + 1；无前驱 = 第 1 波。**波内可并行，波间必须串行**。
-- **调度模式**：状态默认是 **`parallel`**（`state.js decompose` 写入 `dispatchMode: 'parallel'`），
-  `serial` 是**显式退出**。由分解师建议、主理人确认后显式设置。
-- **派发记录（强制）**：parallel 模式下每个并行波必须留下派发记录，否则 Implementation 无法完成：
+- **调度模式**：状态默认是 **`serial`**（`state.js decompose` 写入 `dispatchMode: 'serial'`），
+  `parallel` 是**显式选择**。由分解师建议、主理人确认后显式设置。
+- **派发记录（选择 parallel 后强制）**：parallel 模式下每个并行波必须留下派发记录，否则 Implementation 无法完成：
   `node scripts/state.js dispatch-plan` 查看计划 →
   `node scripts/state.js dispatch --wave <n> --subtasks <ids> --agent <成员ID>` 记录 →
   或 `node scripts/state.js dispatch-waive --wave <n> --reason "<理由>"` 显式豁免。
@@ -237,7 +238,7 @@ Phase 11 Archive（主理人） 工件整理 + 记忆索引更新 + 闭环记录
 ### 4.2 核心命令
 
 ```bash
-node scripts/state.js init --name "任务名" --type implementation --path full
+node scripts/state.js init --name "任务名" --type implementation
 node scripts/state.js stage <stage> <status>
 node scripts/state.js checkpoint "<名称>" <pass|fail|warn> --reason "<实际依据>"
 node scripts/state.js decompose --tasks '[{"id":"t1","name":"...","depends":[],"affectedFiles":["src/a.js"]}]'
@@ -252,7 +253,7 @@ node scripts/state.js resume
 node scripts/state.js validate
 node scripts/state.js report
 node scripts/state.js archive
-node scripts/state.js module <module-id> submitted --reason "<依据>"   # 仅 --type design --path full
+node scripts/state.js module <module-id> submitted --reason "<依据>"   # 仅在设计阶段（feature-design / architecture）
 node scripts/state.js gitdec approved --reason "<用户授权原话>"
 node scripts/state.js opsRegister --id <step-id> --command "<命令原文>" --cwd <dir> --target <target> --purpose "<目的>"
 node scripts/state.js opsShow <step-id>
@@ -311,8 +312,7 @@ node scripts/memory.js add --layer L2 --content "..." --source <真实证据>
 不按落点文件数判断；落点文件数仅作范围探查的下界证据。
 
 1. 请求涉及**代码/脚本/配置/文档的实际写入**，且命中 3.1 节**改动复杂度检查点**的升级判据（升级判据的**权威定义**在 `modules/core/task/escalation.md`，本团队的中文 canon 副本见 `agents/hello-dev-team-lead.md` 的 [改动复杂度检查点]；本处只引用，不复述阈值）。
-2. 请求涉及**数据模型、接口或架构决策**，需要独立评审（`--type design --path full` 才有
-   `feature-design` / `architecture` / `tool-research` / `prototype` 等 design-only 阶段使 `design/full` 走 15 阶段；`implementation` / `fast` / `other` 走 11 阶段）。
+2. 请求涉及**数据模型、接口或架构决策**，需要独立评审（设计阶段 `feature-design` / `architecture` / `tool-research` / `prototype` 在全链上；非必要时经用户批准的 `state.js skip` 跳过）。
 3. 请求涉及 **Git 写操作**（commit / push / merge / rebase / 分支操作）或**运维命令**（kubectl / systemctl / terraform / helm 等；docker 仅 **推送 / 镜像仓库写操作**（`docker push`）仍受管辖——`build` / `compose` / `pull` / `run` / `exec` / `rm` / `rmi` / `stop` / `kill` / `prune` 等**本地开发动词属放行**，不归闸门管辖）。
 4. 请求涉及**部署、发布、安装副本同步**或**文件删除**。
 5. 请求明确要求**验证、复核、审计、证据、可追溯**。

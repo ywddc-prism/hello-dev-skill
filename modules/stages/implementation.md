@@ -42,8 +42,10 @@ node scripts/state.js subtask t2 completed
 
 ### Parallel Dispatch (sub-agent delegation)
 
-`dispatchMode` defaults to `parallel`, so a wave the analysis marks parallel **must** be
-dispatched to sub-agents rather than executed by the main agent. Read the plan first:
+`dispatchMode` defaults to `serial` (the main agent executes every subtask). Opt into
+`parallel` when a wave of independent subtasks should be delegated to sub-agents; under
+`parallel`, a wave the analysis marks parallel **must** be dispatched to sub-agents rather
+than executed by the main agent. Read the plan first:
 
 ```bash
 node scripts/state.js dispatch-plan

@@ -4,6 +4,8 @@
 
 ## When Decomposition Is Mandatory
 
+This section is the one place the decomposition criterion is defined. Every other document — including `stages/requirement.md`, `core/task/escalation.md`, and `SKILL.md` — cites this table; they do not define their own thresholds. (This mirrors how `escalation.md` holds the escalation criterion: two questions, two thresholds, each defined once.)
+
 Judge by the scope-survey output (affected-file list + number of logical change units), **counted by logical change unit, not by touched-file count**:
 
 | Condition | Action |
@@ -115,12 +117,13 @@ Scope note: the analysis describes execution order only. It does not grant dispa
 ## Dispatch Mode
 
 After decomposition, the main agent sets a dispatch mode controlling how subtasks are executed.
-`decompose` defaults this to `parallel`.
+`decompose` defaults this to `serial` (the main agent executes every subtask; `parallel` is an
+explicit opt-in).
 
 | Mode | Behavior |
 |------|----------|
-| `parallel` (default) | Every wave the analysis marks `parallel` is dispatched to sub-agents concurrently; single-subtask waves stay with the main agent |
-| `serial` (explicit opt-out) | Main agent executes all subtasks sequentially, one at a time; the reason should be recorded |
+| `serial` (default) | Main agent executes all subtasks sequentially, one at a time; no dispatch records are owed |
+| `parallel` (explicit opt-in) | Every wave the analysis marks `parallel` is dispatched to sub-agents concurrently; single-subtask waves stay with the main agent, and each parallel wave must carry a `dispatch` or `dispatch-waive` record |
 
 ### Dispatch Plan (mandatory)
 
@@ -188,6 +191,14 @@ When dispatching to sub-agents, the following constraints are **mandatory**:
    already-measured facts and baselines, the off-limits list with reasons, and the absolute working
    directory. "Based on your findings" is prohibited -- it outsources understanding. A prompt is
    adequate when the sub-agent can locate the change without any additional search.
+   **Plan-intent artifact**: the global design intent (layering, data flow, cross-cutting
+   decisions with rationale) is recorded once per decomposition by `decompose --plan-intent
+   "<markdown>"`, which writes `.hello-dev/plan-intent.md` and records the bare filename in
+   `decomposition.planIntentFile`. `codex-prompt.js` injects its content into every sub-agent
+   prompt's `## Context (already established -- do not re-derive)` block, so a side task receives
+   the *why* behind the design -- not only its file list. Without an artifact the block still
+   appears (working directory + off-limits + an explicit "design intent not recorded"), so its
+   absence is never ambiguous.
 
 ### Sub-Agent Failure Handling
 
@@ -227,8 +238,8 @@ node scripts/state.js decompose --tasks '[
 node scripts/state.js order
 
 # Set dispatch mode (after decomposition, before implementation)
-node scripts/state.js dispatch-mode parallel   # default
-node scripts/state.js dispatch-mode serial   # explicit opt-out
+node scripts/state.js dispatch-mode serial     # default: main agent executes all
+node scripts/state.js dispatch-mode parallel   # explicit opt-in: dispatch parallel waves to sub-agents
 
 # View current dispatch mode
 node scripts/state.js dispatch-mode

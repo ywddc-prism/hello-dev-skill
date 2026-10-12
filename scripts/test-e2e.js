@@ -45,13 +45,22 @@ function mkProject(prefix) {
   return d;
 }
 
+/** Record user-approved skips of the four design stages so the full chain reaches
+ * implementation. Replaces the retired `--path fast` auto-filter: under the
+ * full-chain default, non-design tasks get there by recorded consent, not routing. */
+function skipDesignStages(proj) {
+  for (const s of ['tool-research', 'feature-design', 'architecture', 'prototype']) {
+    run(proj, 'skip', s, '--reason', 'User approved: skip design stage, implementation plan already confirmed for this fixture task');
+  }
+}
+
 /* ---------- 1. fast-path full lifecycle ---------- */
 section('1. fast-path full lifecycle');
 {
   const proj = mkProject('hello-dev-e2e-fast-');
 
   // init
-  const r0 = run(proj, 'init', '--name', 'e2e-fast', '--type', 'implementation', '--path', 'fast');
+  const r0 = run(proj, 'init', '--name', 'e2e-fast', '--type', 'implementation');
   ok('init succeeds', r0.code === 0, r0.out.slice(0, 200));
 
   // bootstrap
@@ -69,6 +78,9 @@ section('1. fast-path full lifecycle');
   ok('Requirement confirmed checkpoint', run(proj, 'checkpoint', 'Requirement confirmed', 'pass', '--reason', 'requirement confirmed against the fixture plan for this automated end to end run').code === 0);
   ok('Decomposition plan checkpoint', run(proj, 'checkpoint', 'Decomposition plan', 'pass', '--reason', 'small task no decomposition needed; the fixture plan is a single unit of work for the automated run').code === 0);
   ok('requirement completed', run(proj, 'stage', 'requirement', 'completed').code === 0);
+
+  // full chain: record approved skips of the design stages, then implementation
+  skipDesignStages(proj);
 
   // implementation
   ok('implementation in_progress', run(proj, 'stage', 'implementation', 'in_progress').code === 0);
@@ -105,8 +117,8 @@ section('2. Parallel task lock isolation');
   const proj = mkProject('hello-dev-e2e-parallel-');
 
   // Create two siblings
-  const r1 = run(proj, 'init', '--task', 'p1', '--name', 'parallel-1', '--type', 'implementation', '--path', 'fast');
-  const r2 = run(proj, 'init', '--task', 'p2', '--name', 'parallel-2', '--type', 'implementation', '--path', 'fast');
+  const r1 = run(proj, 'init', '--task', 'p1', '--name', 'parallel-1', '--type', 'implementation');
+  const r2 = run(proj, 'init', '--task', 'p2', '--name', 'parallel-2', '--type', 'implementation');
   ok('p1 init', r1.code === 0, r1.out.slice(0, 200));
   ok('p2 init', r2.code === 0, r2.out.slice(0, 200));
 
@@ -136,7 +148,7 @@ section('2. Parallel task lock isolation');
 section('3. Ops approval TTL and stepDigest');
 {
   const proj = mkProject('hello-dev-e2e-ops-');
-  run(proj, 'init', '--name', 'e2e-ops', '--type', 'implementation', '--path', 'fast');
+  run(proj, 'init', '--name', 'e2e-ops', '--type', 'implementation');
   beginInitialization(proj);
   // Section 3 previously completed `requirement` with NO required checkpoint and never
   // asserted the return code, so the gate's failure was swallowed and the ops assertions
@@ -146,6 +158,7 @@ section('3. Ops approval TTL and stepDigest');
   ok('decomposition checkpoint recorded', run(proj, 'checkpoint', 'Decomposition plan', 'pass',
     '--reason', 'no decomposition needed: the ops fixture is a single unit of work for this run').code === 0);
   ok('requirement completed', run(proj, 'stage', 'requirement', 'completed').code === 0);
+  skipDesignStages(proj);
   ok('implementation in_progress', run(proj, 'stage', 'implementation', 'in_progress').code === 0);
 
   // Register an ops command
@@ -197,11 +210,12 @@ section('3. Ops approval TTL and stepDigest');
 section('4. Rollback and retry');
 {
   const proj = mkProject('hello-dev-e2e-rollback-');
-  run(proj, 'init', '--name', 'e2e-rollback', '--type', 'implementation', '--path', 'fast');
+  run(proj, 'init', '--name', 'e2e-rollback', '--type', 'implementation');
   beginInitialization(proj);
   run(proj, 'checkpoint', 'Requirement confirmed', 'pass', '--reason', 'requirement confirmed against the fixture plan for this automated end to end run');
   run(proj, 'checkpoint', 'Decomposition plan', 'pass', '--reason', 'no decomposition needed: the fixture task is a single unit of work for this run');
   run(proj, 'stage', 'requirement', 'completed');
+  skipDesignStages(proj);
   run(proj, 'stage', 'implementation', 'in_progress');
   run(proj, 'stage', 'implementation', 'completed');
 

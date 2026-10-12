@@ -37,7 +37,7 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 5. **会话重启丢失状态**:对话历史是唯一记录,不可靠。Hello Dev 将所有审批、重试、检查点和分解状态持久化到 `.hello-dev/state.json`,通过 `resume` 恢复。
 6. **平台绑定**:同一工作流必须能在不同 AI 宿主上运行。Hello Dev 通过 Host Adapter 层将调度与派发解耦,核心状态机与宿主无关,各平台提供自己的子 Agent 调用机制。
 
-它提供结构化执行路径(design/full、implementation、fast),包含强制的测试(Testing)和评审(Review)阶段,交互式架构决策引导,以及评估经验候选项但不自动激活的进化系统。
+它提供单一结构化执行路径(完整 15 阶段链),包含强制的测试(Testing)和评审(Review)阶段,交互式架构决策引导,以及评估经验候选项但不自动激活的进化系统。设计阶段仅可经记录在案的用户批准跳过(`state.js skip`),绝不由静默路由削减。
 
 ## 何时使用
 
@@ -52,9 +52,9 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 ## 快速开始
 
 1. **用自然语言描述任务**(如"修一个 bug"、"先给个方案"、"重构认证模块")。
-2. **确认范围**:Agent 识别执行路径(design/full、implementation 或 fast),与你确认边界。
+2. **确认范围**:Agent 与你确认问题、边界和成功标准。所有任务都从全链开始。
 3. **分解子任务**(单原子变更除外):每个子任务声明受影响的文件,用于冲突检测。
-4. **按阶段执行**:Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。设计路径在实现前插入 Tool Research、Feature Design、Architecture 和 Prototype。
+4. **按阶段执行**:Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。设计阶段非必要时,agent 在阶段边界提议跳过;经你同意后才用 `state.js skip` 记录。
 5. **验证并交付**:每个阶段产出必需产物;测试和评审门禁不可跳过。
 
 ## 执行契约
@@ -84,6 +84,8 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 | 需要设计模块审批 | [design-flow.md](modules/core/approval/design-flow.md) |
 | 需要查找其他材料 | [modules/index.md](modules/index.md),仅加载相关条目 |
 | 需求确认后分解子任务(必须) | [decomposition.md](modules/core/task/decomposition.md) 分解、顺序表和调度模式 |
+| 前端/UI 设计决策(prototype 阶段) | `ui-ux-pro-max` 捆绑技能(结构化 UI 方案) + `grill-me` 纪律(一次一问) |
+| 跳过某个设计阶段(同意制) | 阶段边界先提议;经同意后 `state.js skip <stage> --reason "<用户批准原话>"` |
 
 不要预读所有阶段、历史设计或模板。直接回答只读咨询;不要"为了使用流程"而写入状态。
 
@@ -91,24 +93,29 @@ Hello Dev 是一个开发增强系统,围绕 AI 辅助开发反复遇到的六�
 
 无需先学习框架术语。用你的语言描述任务即可;[意图映射](modules/core/task/intent-resolver.md)会将其转换为路径:
 
-| 你说 | 内部路径 |
+| 你说 | 实际发生 |
 |------|----------|
-| 先给个方案,别改代码 | design/full,在实现前停止 |
-| 方案已确认,直接实现 | implementation |
-| 修一个小 bug | fast,跳过设计审批 |
+| 先给个方案,别改代码 | 走完设计阶段,在实现前停止 |
+| 方案已确认,直接实现 | 全链;设计阶段仅经批准的 `state.js skip` 跳过 |
+| 修一个小 bug | 全链;非必要时 agent 提议跳过设计阶段 |
+| 琐碎单行改动 | 全链;同样的同意制跳过 |
 | 帮我调研/原理是什么 | 只读,不初始化状态 |
 | 继续上次的任务 | resume |
 | 停止这个任务 | 立即停止 |
 
-分类只决定路径,不决定授权:部署、Git 写操作、安装同步和删除仍需单独确认。
+分类只决定计划,不决定授权:部署、Git 写操作、安装同步和删除仍需单独确认。
 底层的 `scripts/state.js` 保留为恢复和审计接口,状态异常时可直接使用。
 
 ## 执行路径
 
-- **Design full**:Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。
-- **明确方案实现/fast/其他带写入**:Bootstrap -> Initialization -> Requirement -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。
-- 小变更可使用 fast:预估 <50 行,无新依赖,无架构变更;规模仅是提示,不覆盖风险判断。
+只有一条执行路径——全链。设计阶段的缩减只经记录在案的用户批准跳过实现。
+
+- **全链**:Bootstrap -> Initialization -> Requirement -> Tool Research -> Feature Design -> Architecture -> Prototype -> Implementation -> Testing -> Review -> Ship -> Learn -> Evolution -> Reflection -> Archive。
+- **同意制跳过**:在每个设计阶段边界,若该阶段非必要,agent 给出推荐意见并提议跳过;用户同意后记录 `node scripts/state.js skip <stage> --reason "<用户批准原话>"`。授权门(bootstrap/initialization/requirement)、证据门(testing/review)、ship 与四个后置反思阶段永不可跳。
+- 小变更同样走全链:是否提议跳过必须依据 scope survey 输出而非行数——受影响文件清单、逻辑变更单元数、是否跨业务模块。预估 <50 行、无新依赖、无架构变更只是 scope survey 的下界证据,不是覆盖风险判断的独立阈值。
 - 纯设计或文档任务:实现阶段整理已批准的文档;测试验证一致性和示例,不生成用户未请求的代码。
+
+**Scope survey(任何跳过提议的前置条件)**:提议跳过前,先产出四项——受影响文件清单、逻辑变更单元数、是否跨业务模块、是否存在未决设计点。scope survey 未完成不得提议跳过。
 
 | 阶段 | 必需输出 | 按需详情 |
 |------|----------|----------|
@@ -138,7 +145,7 @@ node scripts/state.js dispatch-mode parallel   # 并行波次使用子 agent
 node scripts/state.js dispatch-mode serial     # 默认:主 agent 执行全部
 ```
 
-**调度模式**:`serial`(默认,主 agent 完成所有)或 `parallel`(并行波次委托给子 agent)。子 agent 受限:不写状态、不做 Git 操作、不与用户交互。主 agent 验证所有子 agent 输出。同一波次内的文件冲突强制顺序执行。完整约束见 [decomposition.md](modules/core/task/decomposition.md)。
+**调度模式**:`serial`(默认,主 agent 完成所有)或 `parallel`(显式选择,并行波次委托给子 agent)。选择 `parallel` 后,分析标记为并行的波次**必须**派发给子 agent 并记录。子 agent 受限:不写状态、不做 Git 操作、不与用户交互。主 agent 验证所有子 agent 输出。同一波次内的文件冲突强制顺序执行。完整约束见 [decomposition.md](modules/core/task/decomposition.md)。
 
 
 ### Codex 子 Agent 调度
@@ -185,7 +192,7 @@ node scripts/memory.js add --layer L2 --content "..." --source <实际证据>   
 | 运维命令风险和执行审批 | [ops-execution.md](modules/core/approval/ops-execution.md);风险表必须匹配 hooks/opsgate.js |
 | 变更日志 | [日志规则](docs/progress_coding/_RULES.md) |
 
-`agents/`、已归档的 `automation/` 和 `core/memory/` 历史设计不是当前执行基础。Learn、Evolution、Reflection、Archive 在全部执行路径上均为强制阶段（包括 `fast`、`tiny` 和 `other`），不是可选阶段；其完成检查点不可跳过，也不因交付而免除。详见 [modules/index.md](modules/index.md)。
+`agents/`、已归档的 `automation/` 和 `core/memory/` 历史设计不是当前执行基础。Learn、Evolution、Reflection、Archive 在全部执行路径上均为强制阶段（包括 `other` 与任何带设计阶段跳过的路径），不是可选阶段；其完成检查点不可跳过，也不因交付而免除。详见 [modules/index.md](modules/index.md)。
 
 ## 验证本 Skill
 
