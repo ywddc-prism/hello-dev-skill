@@ -159,7 +159,7 @@ maxTurns: 200
 [升级判据 vs 分解判据·关系]
 "升级 WF-Standard"与"是否必须分解"是**两个不同的问题、两套不同阈值的判据**，不得互相替代：
 - 升级判据（本节）回答"这条请求要不要走标准闭环"，消费范围探查的**四项产出**（受影响文件清单 / 逻辑改动单元数 / 是否跨业务模块 / 未决策设计点）+ 去重后行数。
-- 分解判据（`modules/stages/requirement.md` 与 `modules/core/task/decomposition.md` 的"When Decomposition Is Mandatory"表）回答"这条请求要不要拆子任务"，消费同一份范围探查产出，阈值为：逻辑改动单元数 ≥ 2、存在明确顺序依赖、去重后预估 > 50 行，命中即必须分解。
+- 分解判据（boundary-recognition SOP / 边界识别 SOP：本文复述判据供作业时即时判定，权威定义在 `modules/core/task/decomposition.md`，`modules/stages/requirement.md` 只引用它、不复述其阈值）回答"这条请求要不要拆子任务"，消费同一份范围探查产出；命中条件与阈值以该节为准，本文不复述。
 - 关系：**升级 ≠ 分解**。同一份范围探查产出同时喂给两套判据，但结论独立——可以"升级但只 1 个改动单元因而允许不分解"（例如单个改动单元存在未决策设计点、或落在 2 个模块根），也可以"要分解但不必升级"（例如 2 个改动单元、无未决设计点、同模块、去重后 <50 行）。二者都成立时按各自结论执行：升级决定路径，分解决定落盘粒度与波次。
 
 ### WF-Tiny 微改动路径（主理人独自执行）
@@ -267,28 +267,25 @@ Phase 1.5（串行，条件触发）：hello-dev-prd-analyst
   -> 小改动/bug fix 时跳过
 
 Phase 2（串行）：【设计决策须用户逐项批准】
-  Phase 2a（串行，条件触发）：hello-dev-ux-designer
-    -> design/full 路径时自动激活（Requirement 之后、Tool Research 之前）
-    -> 一问一答式决策引导：用户研究、交互流程、信息架构、可用性标准
-    -> 每个设计决策由你转达用户，批准后推进下一个
   Phase 2b（串行，条件触发）：hello-dev-tool-researcher —— 对应阶段 `tool-research`
-    -> design/full 路径时自动激活（Requirement 之后、Feature Design 之前）
-    -> 开源框架与工具调研：候选框架、库、工具与参考项目的开源生态扫描，事实回传
+    -> 全链走到该阶段且未被用户批准跳过时激活（Tool Research 事实采集与对比）
     -> 每个调研结论由你转达用户，不代替架构决策
   Phase 2c（串行，条件触发）：hello-dev-architect —— 对应阶段 `architecture`
-    -> design/full 路径时自动激活（Tool Research 之后，覆盖 Feature Design + Architecture）
-    -> 一问一答式决策引导：Feature Design + Architecture
+    -> 全链走到该阶段且未被用户批准跳过时激活（Feature Design + Architecture 一问一答式决策引导）
     -> 每个设计决策由你转达用户，批准后推进下一个
   Phase 2d（串行，条件触发）：prototype —— 对应阶段 `prototype`
-    -> design/full 路径必经阶段（Architecture 之后、Implementation 之前）
-    -> 产出可运行原型，验证设计决策落地可行性
+    -> 全链阶段，仅在未被用户批准跳过时执行（Architecture 之后、Implementation 之前）
+    -> 由 hello-dev-ux-designer + hello-dev-ui-designer 同阶段协同：
+       每轮分两段：
+         (a) 设计段：先逐项批准本轮 UX 与 UI 决策
+             （一次一问、先推荐后问，全部批准后才进入构建段）
+         (b) 构建段：基于已批准决策构建本轮可运行原型 vN ->
+             用户当轮体验 -> 反馈驱动下一轮
+       UX+UI 决策在当轮内的先后顺序不限，但两者都须在构建前完成
+    -> UX 可用性审查在轮内完成；冲突最多 2 轮、第 3 轮你裁定
+    -> 决策以 checkpoint 记账（prototype 阶段 CLI 不支持 module）
     -> 原型结论由你转达用户，批准后推进 Phase 3
-  Phase 2e（串行，条件触发）：hello-dev-ui-designer
-    -> design/full 路径时自动激活（prototype 之后、Implementation 之前）
-    -> 一问一答式决策引导：视觉风格、配色方案、字体规范、间距系统、组件规范、设计系统
-    -> 完成后由 hello-dev-ux-designer 进行可用性审查（迭代交织协议，最多 2 轮）
-    -> 每个设计决策由你转达用户，批准后推进下一个
-  由你携带 Phase 1/1.5 产出，结合各设计师的设计方案，就每个设计模块向用户请示
+  由你携带 Phase 1/1.5 产出，结合各设计师的设计方案，就每个设计决策向用户请示
 
 Phase 3（串行）：hello-dev-task-decomposer
   -> 子任务 + depends + affectedFiles + 波次顺序表 + 调度模式（serial/parallel）
@@ -449,9 +446,9 @@ name: "hello-dev-learning-mentor",   subagent_type: "hello-dev-learning-mentor"
 并行不是"同时叫几个人干活"，而是 Hello Dev 分解机制的落地。规则如下：
 
 1. **波次由依赖决定**：子任务的波次 = max(所有前驱波次) + 1；无前驱 = 第 1 波。波内可并行，**波间必须串行**。
-2. **调度模式**：状态默认是 **`parallel`**（`state.js decompose` 写入 `dispatchMode: 'parallel'`），
-   `serial` 是**显式退出**（主执行者逐个做）。由 `hello-dev-task-decomposer` 建议、你确认后显式设置。
-   **parallel 下，每一个并行波都必须在实施后留下派发记录**，否则 Implementation 无法完成（见下"派发记录"）。
+2. **调度模式**：状态默认是 **`serial`**（`state.js decompose` 写入 `dispatchMode: 'serial'`），
+   `parallel` 是**显式选择**（并行波派发给子 agent）。由 `hello-dev-task-decomposer` 建议、你确认后显式设置。
+   **选择 `parallel` 后，每一个并行波都必须在实施后留下派发记录**，否则 Implementation 无法完成（见下"派发记录"）。
 3. **文件冲突强制降级**：同一波内任意两个子任务共享 `affectedFiles`，该波**自动降级为串行**。这是硬规则，不可以"看起来没事"为由绕过。
 4. **子代理约束（强制）**：每个子代理必须收到显式范围（可读/可改的文件、实现描述、验收标准、禁止触碰的文件），并且：
    - 不写 `.hello-dev/state.json`、`memory.json` 或任何 HelloDev 状态
@@ -464,8 +461,8 @@ name: "hello-dev-learning-mentor",   subagent_type: "hello-dev-learning-mentor"
 
 ### 派发记录（parallel 波强制）
 
-`state.js` 在 `decompose` 时默认写入 `dispatchMode: 'parallel'`。此模式下，每个并行波
-**必须有派发记录**，否则 `stage implementation completed` 会被拒绝：
+`state.js` 在 `decompose` 时默认写入 `dispatchMode: 'serial'`（主执行者逐个做，无派发义务）。一旦显式选择
+`dispatch-mode parallel`，每个并行波**必须有派发记录**，否则 `stage implementation completed` 会被拒绝：
 `Completing implementation requires sub-agent dispatch for every parallel wave; missing: wave N (...)`。
 
 ```bash
@@ -477,30 +474,43 @@ node scripts/state.js dispatch-waive --wave <n> --reason "<为什么该波不派
 记录顺序是**先派发、后核验、再记录**：成员/子代理产出回传 → 你独立核验 → `dispatch` 记录该波 →
 `subtask <id> completed`。禁止用 `dispatch` 记录去"补造"未真正发生的派发。
 
-### UX/UI 迭代交织协议
+### UX/UI 协同协议（Phase 2d · prototype 内）
 
-当 design/full 路径同时涉及 UX Design 和 UI Design 阶段时，两个设计师之间存在**迭代交织**的协作关系。主理人负责协调此协议：
+当全链走到 prototype 阶段时，UX 设计师与 UI 设计师**同阶段协同运行**，不再按顺序流转。主理人负责协调此协议：
 
 ```
-UX 设计师产出交互规范（Phase 2a 完成）
-  → 架构师消费交互规范做技术决策（Phase 2c）
-  → UI 设计师基于交互规范 + 技术约束产出视觉设计（Phase 2e）
-  → UX 设计师对视觉设计做可用性审查
-  → 如有问题：UI 设计师修正 → 再次审查（最多 2 轮）
-  → 第 3 轮仍未一致：主理人做约束性裁定
+prototype 阶段每轮（Round N）分两段：
+
+  【段 A · 设计决策】
+    主理人从 UX 决策队列与 UI 决策队列逐项请示用户
+    （一次一问、先推荐后问、原话记录）
+    UX+UI 决策在当轮内的先后顺序不限，但**两者都须在段 B 之前全部批准**
+    -> 每项决策记录 checkpoint "Decision: <描述>"
+
+  【段 B · 原型构建与体验】
+    段 A 全部批准后才进入本段：
+    -> 基于已批准决策构建本轮可运行原型 vN
+    -> 用户当轮体验原型（present_files / localhost 预览）
+    -> 用户反馈（approve / annotate / reject per decision）
+    -> UX 可用性审查在轮内完成（对比度 / 触控目标 / 异常态视觉定义）
+    -> 如有问题：UX 与 UI 设计师协同修正，再次体验
+    -> **无轮数上限**：用户满意为唯一收敛判据；不满意则继续迭代
+       （主理人可在多轮时输出进度汇报，但仅信息性，不构成终止条件）
+    -> 记录 checkpoint "Round N complete"
+    -> 反馈驱动下一轮段 A
 ```
 
 **主理人在此协议中的职责**：
-- 将 UI 设计师的产出转发给 UX 设计师审查
-- 将 UX 设计师的审查报告转发给 UI 设计师
-- 记录每轮迭代的审查结论
-- 在第 3 轮做出约束性裁定并记录理由
-- 审查通过后记录 `checkpoint "ux-review" pass`
+- 段 A：从两份决策队列（UX 关注点 / UI 关注点）各取一项，组成当轮清单；逐项请示用户
+- 段 B：把用户反馈转发给两位设计师；每轮完成后记录 checkpoint
+- 阶段完成判据：**用户明确表示满意**（不得以轮数、沉默、超时作为判据）
+- 阶段完成时记录 `checkpoint "ux-review" pass --reason "..."`
+- **硬顺序**：段 A 未全部批准，不得进入段 B（不得提前构建原型）
 
-**冲突消解优先级**（在 UX/UI 交织场景下）：
-- 无障碍问题（对比度、触控目标）→ 必须修正，不可裁定跳过
-- 交互一致性问题 → 优先修正，但可接受合理的视觉简化
-- 风格偏好分歧 → 主理人可直接裁定，不必强制修正
+**冲突消解优先级**（在 UX/UI 协同场景下）：
+- 无障碍问题（对比度、触控目标）-> 必须修正，不可裁定跳过
+- 交互一致性问题 -> 优先修正，但可接受合理的视觉简化
+- 风格偏好分歧 -> 主理人可直接裁定，不必强制修正
 
 ### 结果汇总与冲突消解
 
@@ -536,7 +546,7 @@ UX 设计师产出交互规范（Phase 2a 完成）
 ### 核心命令
 
 ```bash
-node scripts/state.js init --name "任务名" --type implementation --path full
+node scripts/state.js init --name "任务名" --type implementation
 node scripts/state.js stage <stage> <status>
 node scripts/state.js checkpoint "<名称>" <pass|fail|warn> --reason "<实际依据>"
 node scripts/state.js decompose --tasks '[{"id":"t1","name":"...","depends":[],"affectedFiles":["src/a.js"]}]'
@@ -566,7 +576,7 @@ node scripts/memory.js recall --layer L2 --limit 5
 node scripts/memory.js add --layer L2 --content "..." --source <真实证据>
 ```
 
-`module` / `gitdec` / `ops*` 的作用：`module` 只对 `--type design --path full` 生效（非 design 路径下
+`module` / `gitdec` / `ops*` 的作用：`module` 只在设计阶段（feature-design / architecture）生效（其余阶段下
 `feature-design` 阶段不存在，调用会失败）；`gitdec` 记录 Git 授权结论（钩子只拦截，不会知道用户答没答应）；
 `ops*` 是运维命令的运行时审批流，`opsApprove` 需要用户核对 `opsShow` 打印的 `stepDigest` 后回填。
 
@@ -581,10 +591,9 @@ node scripts/memory.js add --layer L2 --content "..." --source <真实证据>
 
 ### 阶段与状态面板同步（WorkBuddy 必做）
 
-Hello Dev 的 15 阶段（full 路径）或 11 阶段（非 full 路径）必须同步到 WorkBuddy 任务面板：
+Hello Dev 的 15 阶段（唯一执行路径，全链）必须同步到 WorkBuddy 任务面板：
 
-阶段数随路径变化：`--type design --path full` 为 15 阶段；`implementation` / `fast` / `other` 为 11 阶段
-（不含 4 个 design-only 阶段 `feature-design`、`tool-research`、`architecture`、`prototype`）。派发前先读 `state.js show` 确认当前路径，不要按 15 阶段硬套。
+阶段数恒为 15：所有任务都走全链；设计阶段仅在经用户批准的 `state.js skip` 后移出路径（此时面板同步跳过的阶段也不建任务）。派发前先读 `state.js show` 确认当前路径与已跳过阶段，不要把已跳过的阶段硬建成任务。
 
 - **WF-Tiny**：不逐阶段同步面板（主理人独自执行，4 个编排阶段自行跟踪）
 - **WF-Fast 及以上**：每个阶段一个任务，命名 `HelloDev: <Stage>`

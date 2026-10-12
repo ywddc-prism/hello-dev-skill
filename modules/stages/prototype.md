@@ -1,7 +1,17 @@
 # Stage: Prototype - Interleaved UX + UI Design
 
 > Mandatory stage in the `design/full` execution path. Replaces the former sequential `ux-design` and `ui-design` stages. Positioned between Architecture and Implementation.
-> Position in shorter paths: skipped (along with tool-research, feature-design, and architecture), as its purpose (building a verifiable prototype) is only needed when the full design loop is active.
+> Position in shorter paths: skipped only via a recorded, user-approved `state.js skip` (like the other design stages); as its purpose (building a verifiable prototype) is only needed when the full design loop is active.
+
+## Hard Rule: Frontend Decisions Require the User, Through ui-ux-pro-max
+
+**This stage is a questioning-and-building stage, not an autonomous design stage.** Frontend decisions are put to the user one at a time; the agent does not decide layout, color, interaction, or visual style on its own.
+
+1. **Load `ui-ux-pro-max` for every frontend decision.** The bundled skill (`skills/ui-ux-pro-max/SKILL.md`) is the structured path from requirement to UI: Step 1 requirement parsing (platform, personas, core tasks, brand tone, constraints) -> Step 2 design tokens -> Step 3 component specs -> Step 4 layout blueprint -> Step 5 implementation notes. Follow its **confidence gating**: when input is missing (brand color, target platform, audience), use `[需核实:...]` placeholders and request the information instead of inventing values.
+2. **One question at a time, with a recommendation first.** Before each UX/UI decision, state the recommended answer and why, then ask and wait for a real reply. Record the user's answer verbatim.
+3. **Questioning follows the `grill-me` discipline.** Model the decisions as a tree; walk branches in dependency order; resolve one branch to completion before opening the next; answer codebase-resolvable facts yourself with Read/Grep instead of spending a user turn.
+4. **Silence, timeout, and tool unavailability are not consent.** If a decision cannot be settled, record it as pending and keep it in the round's unresolved list — do not silently pick a value.
+5. **The user experiences, not reads.** Every round serves a runnable HTML prototype via `present_files` (or localhost preview); feedback from the experience drives the next round.
 
 ## Teaching Goal
 
@@ -141,7 +151,7 @@ When the user requests a frontend modification during the prototype stage:
 4. **User verifies**: the user experiences the change in context
 5. **Record the decision**: log what was changed and why
 
-Modifications do not require a new "round" — they are applied immediately and verified in the same interaction. However, they count toward the iteration budget (maximum 5 rounds total, including modifications that trigger re-verification).
+Modifications do not require a new "round" — they are applied immediately and verified in the same interaction.
 
 ### Modification vs. New Round
 
@@ -186,18 +196,15 @@ The prototype does NOT need to be:
 The stage completes when ALL of the following are true:
 - All UX concern decisions have been approved (or resolved through iteration)
 - All UI concern decisions have been approved (or resolved through iteration)
-- The user has confirmed the final prototype represents the intended design
+- **The user explicitly confirms satisfaction with the final prototype** (user satisfaction is the sole convergence criterion — there is no round limit)
 - All pending modification requests have been applied and verified
 - Design tokens and component specs have been extracted from the prototype
 
-### Maximum Iterations
+### Iteration Policy
 
-Default maximum: **5 rounds**. After 5 rounds without convergence:
-1. Identify which decisions remain unresolved
-2. Present the unresolved decisions to the user with the agent's recommendation
-3. User makes a binding decision on each unresolved item
-4. Final prototype is updated to reflect binding decisions
-5. Stage completes
+**No round limit.** The iteration loop runs until the user explicitly confirms satisfaction. The agent must not impose a round cap, invoke a binding tie-breaker, or treat silence / timeout as approval. If the user indicates dissatisfaction at any point, another iteration is required.
+
+The agent may, at its own discretion, provide a progress summary (unresolved points, recommendation, cost estimate) when iterations are many — but such a summary is **informational only** and does not constitute a termination condition. The user decides whether to continue or accept the current state.
 
 ### Deliverables
 
@@ -245,7 +252,7 @@ node scripts/state.js stage prototype completed
 | Final prototype verified | User confirmed the last prototype represents the intended design |
 | All modifications applied | Every pending modification request has been applied and verified |
 | Specifications extracted | UX spec, UI spec, design tokens, and component specs derived from the prototype |
-| Round limit respected | Did not exceed 5 rounds without explicit user authorization to extend |
+| User satisfaction | User explicitly confirmed the prototype is satisfactory |
 
 ---
 
@@ -256,6 +263,8 @@ node scripts/state.js stage prototype completed
 | Feature Design | Page/component list, feature priorities, state design |
 | Tool Research | Component library, CSS framework, prototyping approach |
 | Architecture | Technology constraints (rendering approach, build tool) |
+| `ui-ux-pro-max` (bundled skill) | Structured UI path: requirement parsing -> design tokens -> component specs -> layout blueprint -> implementation notes; `[需核实:...]` placeholders for missing inputs |
+| `grill-me` (bundled skill) | Questioning discipline for every UX/UI decision: recommendation first, one question at a time, decision-tree order, facts resolved by reading the codebase |
 
 ---
 
@@ -292,7 +301,7 @@ If the prototype stage is somehow split back into separate concerns (e.g., a fut
 2. A new round is opened targeting that concern
 3. The prototype is updated to reflect changes
 4. The user verifies the updated prototype
-5. Maximum 2 fallback rounds; after that, the team lead makes a binding decision
+5. Iteration continues until the user explicitly confirms satisfaction
 
 ---
 
