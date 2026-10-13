@@ -342,13 +342,12 @@ function cmdEvaluate(args) {
   }
 
   return withLockRMW(root, (e) => {
-    // **Elapsed timing must come before budget gate** (review M-b): original puts startedAt persist
-    // **after** hard gate, so 5 consecutive overreaching candidates rejected with startedAt always null —
-    // ran 5 state-writing evaluations, time gate never timed anything. Overreaching candidates are exactly the input
-    // most needing rate-limiting (can be repeatedly fed via external files). Put first: any state-writing evaluate gets timed.
-    if (e.budget.startedAt === undefined || e.budget.startedAt === null) {
-      e.budget.startedAt = now();
-    }
+    // **Elapsed timing must be established before the budget gate** (review M-b): the original wrote
+    // startedAt **after** the hard gate, so 5 consecutive overreaching candidates were rejected with
+    // startedAt always null -- ran 5 state-writing evaluations, the time gate never timed anything.
+    // Overreaching candidates are exactly the input most needing rate-limiting (can be repeatedly fed
+    // via external files). The assignment itself now lives in enforceBudget (first line), so every
+    // gated writer starts the clock; its ordering relative to the gate is unchanged here.
     // Budget gate (shared): stop at limit, no infinite retry (charter §4)
     // enforceBudget may set stopped, must persist before fail, otherwise stop state lost
     try { enforceBudget(e); }
@@ -422,6 +421,13 @@ function cmdEvaluate(args) {
 // `budget` still reports 'not stopped'. Budget working for only one entry = no budget (review C-4).
 // When pre-existing stopped both entries must reject; when used hits limit, set stop and reject.
 function enforceBudget(e) {
+  // Elapsed clock (charter §4 third dimension): the round is timed from the FIRST state-writing
+  // operation, not only from `evaluate`. Starting it here -- the single gate every writer passes --
+  // closes the gap where a round that only generated or disposed candidates silently escaped the
+  // time limit (same class as F1: a limit that cannot fire where its stated scope says it should).
+  if (e.budget.startedAt === undefined || e.budget.startedAt === null) {
+    e.budget.startedAt = now();
+  }
   if (e.budget.stopped) {
     fail(`Budget stopped: ${e.budget.stopped.reason}\n   Human decision required to continue (run node scripts/evolve.js budget to view)`);
   }
@@ -658,6 +664,11 @@ function cmdGenerate(args) {
     // persisted even though the call throws -- same wrapping as cmdReject.
     try { enforceBudget(e); }
     catch (err) { write(root, e); throw err; }
+    // Generation is a state-writing entry point, so it consumes the round's execution quota as well
+    // (the gate was already shared; without this, remainingEvaluations under-reported work and a
+    // generate-only round looked like it had consumed nothing -- the comment above the gate already
+    // promised "generation consumes budget like any other state-writing entry point").
+    e.budget.used++;
     // Merge generated candidates into candidates array (don't overwrite existing)
     // F6: the return below must describe what was PERSISTED, not what was proposed --
     // dedup-skipped proposals used to be counted in `generated`, so a caller could hold

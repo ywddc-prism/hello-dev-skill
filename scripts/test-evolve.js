@@ -1099,6 +1099,73 @@ console.log('-- 20. generate goes through same budget gate --');
  JSON.stringify(evD3.budget.stopped));
 }
 
+ // -- 23. budget coverage: every gated writer consumes quota and starts the round clock --
+ // Found by the 2026-10-13 limit audit: generate passed the gate but never incremented `used`
+ // (although its comment claimed it consumed the budget), and the elapsed clock was started only
+ // by `evaluate`, so a round that merely generated or disposed candidates escaped the time limit.
+ console.log('-- 23. budget coverage: quota consumption + round clock per writer --');
+{
+ // (1) generate consumes the round's execution quota and starts the clock
+ project('cov-generate-used');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'cu1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pcu = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pcu, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gCu = json(['generate']);
+ ok('generate consumes the execution quota', gCu.generated >= 1 && readEvolve().budget.used === 1,
+ JSON.stringify({ generated: gCu.generated, used: readEvolve().budget.used }));
+ ok(' -> and starts the round clock', typeof readEvolve().budget.startedAt === 'string',
+ String(readEvolve().budget.startedAt));
+
+ // (2) elapsed limit fires for a generate-only round (before: clock never started -> no limit)
+ project('cov-elapsed-generate');
+ fs.writeFileSync(path.join(cwd, '.hello-dev', 'memory.json'), JSON.stringify({
+ schema: 1,
+ entries: [{ id: 'ce1', layer: 'L4', content: 'process', source: 's', tags: [],
+ hits: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }],
+ working: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }));
+ const pce = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pce, JSON.stringify({
+ schema: 1, mode: 'observe', candidates: [], evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null,
+ maxElapsedMs: 1000, startedAt: new Date(Date.now() - 5000).toISOString() },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const gCe = run('generate');
+ ok('**expired round clock stops generate too** (was: only evaluate)',
+ gCe.code !== 0 && /Budget stopped.*elapsed/.test(gCe.out), gCe.out.slice(0, 160));
+ const evCe = readEvolve();
+ ok(' -> stop reason is the elapsed limit', evCe.budget.stopped !== null &&
+ /elapsed/.test(String(evCe.budget.stopped.reason)), JSON.stringify(evCe.budget.stopped));
+ ok(' -> no candidate added by the refused call', evCe.candidates.length === 0,
+ String(evCe.candidates.length));
+
+ // (3) dispositions respect the same clock (every gated writer is timed, not just evaluate)
+ project('cov-elapsed-dispose');
+ const pcd = path.join(cwd, '.hello-dev', 'evolve.json');
+ fs.writeFileSync(pcd, JSON.stringify({
+ schema: 1, mode: 'observe',
+ candidates: [{ id: 'cd-rej', path: '(generated)', type: 'L4-update', target: 't-c',
+ status: 'generated', createdAt: new Date().toISOString(), evaluatedAt: null, verdict: null, reason: null }],
+ evaluations: [],
+ budget: { maxCandidates: 10, maxEvaluations: 20, used: 0, stopped: null,
+ maxElapsedMs: 1000, startedAt: new Date(Date.now() - 5000).toISOString() },
+ createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+ }, null, 2));
+ const rCd = run('reject-candidate', '--candidate', 'cd-rej', '--reason', 'x');
+ ok('dispositions respect the elapsed limit too', rCd.code !== 0 && /Budget stopped/.test(rCd.out),
+ rCd.out.slice(0, 160));
+}
+
 console.log(`\n=== evolve.js: ${pass} passed / ${failN} failed ===`);
  process.exitCode = failN ? 1 : 0;
 } finally {
